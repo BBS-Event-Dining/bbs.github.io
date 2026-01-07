@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8">
-    <title>Heart AR Fountain Random Size</title>
+    <title>Heart AR Fountain Bigger</title>
     <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
   </head>
@@ -26,8 +26,8 @@
             const y0 = (Math.random() - 0.2) * 0.2;
             const z0 = (Math.random() - 0.5) * 0.6;
 
-            // ランダムスケール（0.1〜0.15程度に少し大きめ）
-            const scaleVal = 0.1 + Math.random() * 0.05;
+            // ランダムスケール（大きめ 0.2〜0.3）
+            const scaleVal = 0.2 + Math.random() * 0.1;
 
             heart.setAttribute('gltf-model', 'url(heart2.glb)');
             heart.setAttribute('position', `${x0} ${y0} ${z0}`);
