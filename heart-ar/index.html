@@ -2,41 +2,41 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8">
-    <title>Heart AR Fountain</title>
-    <!-- A-Frame -->
+    <title>Heart AR Fountain Loop</title>
     <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
-    <!-- AR.js -->
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
   </head>
 
-  <body style="margin: 0; overflow: hidden;">
+  <body style="margin:0; overflow:hidden;">
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false">
 
-      <!-- Hiroマーカー -->
       <a-marker preset="hiro">
-        
-        <!-- heartを複数生成 -->
+
+        <!-- heartを生成するコンテナ -->
         <a-entity id="heart-container"></a-entity>
 
         <script>
           const container = document.querySelector('#heart-container');
-          const numHearts = 8; // 飛び出すheartの数
 
-          for (let i = 0; i < numHearts; i++) {
+          function spawnHeart() {
             const heart = document.createElement('a-entity');
+
             // ランダムな初期位置
-            const x = (Math.random() - 0.5) * 0.2;
+            const x = (Math.random() - 0.5) * 0.6; // 左右広め
             const y = 0;
-            const z = (Math.random() - 0.5) * 0.2;
+            const z = (Math.random() - 0.5) * 0.6; // 手前奥も広め
+
+            // 小さめのスケール
+            const scaleVal = 0.05 + Math.random()*0.05;
 
             heart.setAttribute('gltf-model', 'url(heart2.glb)');
-            heart.setAttribute('scale', `${0.1 + Math.random()*0.1} ${0.1 + Math.random()*0.1} ${0.1 + Math.random()*0.1}`);
             heart.setAttribute('position', `${x} ${y} ${z}`);
+            heart.setAttribute('scale', `${scaleVal} ${scaleVal} ${scaleVal}`);
 
             // スケールアニメーション
             heart.setAttribute('animation__scale', `
               property: scale; 
-              to: ${0.2 + Math.random()*0.2} ${0.2 + Math.random()*0.2} ${0.2 + Math.random()*0.2}; 
+              to: ${scaleVal*1.5} ${scaleVal*1.5} ${scaleVal*1.5}; 
               dur: ${800 + Math.random()*400}; 
               easing: easeOutBack
             `);
@@ -44,20 +44,26 @@
             // 位置アニメーション
             heart.setAttribute('animation__move', `
               property: position; 
-              to: ${x} ${0.5 + Math.random()*0.3} ${z + 0.2 + Math.random()*0.2}; 
-              dur: ${1200 + Math.random()*400}; 
+              to: ${x} ${0.7 + Math.random()*0.5} ${z + 0.3 + Math.random()*0.3}; 
+              dur: ${1200 + Math.random()*600}; 
               easing: easeOutQuad
             `);
 
+            // アニメーション終了後に削除
+            heart.addEventListener('animationcomplete__move', () => {
+              heart.parentNode.removeChild(heart);
+            });
+
             container.appendChild(heart);
           }
+
+          // 一定間隔で heart を生成
+          setInterval(spawnHeart, 300); // 0.3秒ごとに追加
         </script>
 
       </a-marker>
 
-      <!-- カメラ -->
       <a-entity camera></a-entity>
-
     </a-scene>
   </body>
 </html>
