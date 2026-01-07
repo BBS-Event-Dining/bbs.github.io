@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8">
-    <title>Heart AR Sample</title>
+    <title>Heart AR Fountain</title>
     <!-- A-Frame -->
     <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
     <!-- AR.js -->
@@ -10,20 +10,49 @@
   </head>
 
   <body style="margin: 0; overflow: hidden;">
-    <!-- ARシーン -->
     <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false">
 
       <!-- Hiroマーカー -->
       <a-marker preset="hiro">
-        <!-- heart2.glbをふんわり噴水のように表示 -->
-        <a-entity
-          gltf-model="url(heart2.glb)"
-          scale="0.3 0.3 0.3"
-          position="0 0 0"
-          rotation="0 0 0"
-          animation__scale="property: scale; to: 0.6 0.6 0.6; dur: 800; easing: easeOutBack"
-          animation__move="property: position; to: 0 0.5 0.3; dur: 1500; easing: easeOutQuad"
-        ></a-entity>
+        
+        <!-- heartを複数生成 -->
+        <a-entity id="heart-container"></a-entity>
+
+        <script>
+          const container = document.querySelector('#heart-container');
+          const numHearts = 8; // 飛び出すheartの数
+
+          for (let i = 0; i < numHearts; i++) {
+            const heart = document.createElement('a-entity');
+            // ランダムな初期位置
+            const x = (Math.random() - 0.5) * 0.2;
+            const y = 0;
+            const z = (Math.random() - 0.5) * 0.2;
+
+            heart.setAttribute('gltf-model', 'url(heart2.glb)');
+            heart.setAttribute('scale', `${0.1 + Math.random()*0.1} ${0.1 + Math.random()*0.1} ${0.1 + Math.random()*0.1}`);
+            heart.setAttribute('position', `${x} ${y} ${z}`);
+
+            // スケールアニメーション
+            heart.setAttribute('animation__scale', `
+              property: scale; 
+              to: ${0.2 + Math.random()*0.2} ${0.2 + Math.random()*0.2} ${0.2 + Math.random()*0.2}; 
+              dur: ${800 + Math.random()*400}; 
+              easing: easeOutBack
+            `);
+
+            // 位置アニメーション
+            heart.setAttribute('animation__move', `
+              property: position; 
+              to: ${x} ${0.5 + Math.random()*0.3} ${z + 0.2 + Math.random()*0.2}; 
+              dur: ${1200 + Math.random()*400}; 
+              easing: easeOutQuad
+            `);
+
+            container.appendChild(heart);
+          }
+        </script>
+
       </a-marker>
 
       <!-- カメラ -->
