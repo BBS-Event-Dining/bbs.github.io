@@ -2,7 +2,7 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8">
-    <title>Heart AR Fountain Loop</title>
+    <title>Heart AR Fountain Natural</title>
     <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
   </head>
@@ -12,7 +12,6 @@
 
       <a-marker preset="hiro">
 
-        <!-- heartを生成するコンテナ -->
         <a-entity id="heart-container"></a-entity>
 
         <script>
@@ -21,35 +20,37 @@
           function spawnHeart() {
             const heart = document.createElement('a-entity');
 
-            // ランダムな初期位置
-            const x = (Math.random() - 0.5) * 0.6; // 左右広め
-            const y = 0;
-            const z = (Math.random() - 0.5) * 0.6; // 手前奥も広め
+            // 初期位置をマーカー中心付近でバラけさせる
+            const x0 = (Math.random() - 0.5) * 0.6;
+            const y0 = (Math.random() - 0.2) * 0.2; // 少し下にも広げる
+            const z0 = (Math.random() - 0.5) * 0.6;
 
-            // 小さめのスケール
-            const scaleVal = 0.05 + Math.random()*0.05;
+            // 小さめ scale
+            const scaleVal = 0.05 + Math.random() * 0.05;
 
             heart.setAttribute('gltf-model', 'url(heart2.glb)');
-            heart.setAttribute('position', `${x} ${y} ${z}`);
+            heart.setAttribute('position', `${x0} ${y0} ${z0}`);
             heart.setAttribute('scale', `${scaleVal} ${scaleVal} ${scaleVal}`);
 
-            // スケールアニメーション
-            heart.setAttribute('animation__scale', `
-              property: scale; 
-              to: ${scaleVal*1.5} ${scaleVal*1.5} ${scaleVal*1.5}; 
-              dur: ${800 + Math.random()*400}; 
-              easing: easeOutBack
-            `);
+            // アニメーション：飛び出す方向もランダムに
+            const x1 = x0 + (Math.random() - 0.5) * 0.8;
+            const y1 = y0 + 0.5 + Math.random() * 0.5; // 高さをランダムに
+            const z1 = z0 + (Math.random() - 0.5) * 0.8;
 
-            // 位置アニメーション
             heart.setAttribute('animation__move', `
-              property: position; 
-              to: ${x} ${0.7 + Math.random()*0.5} ${z + 0.3 + Math.random()*0.3}; 
-              dur: ${1200 + Math.random()*600}; 
+              property: position;
+              to: ${x1} ${y1} ${z1};
+              dur: ${1200 + Math.random() * 800};
               easing: easeOutQuad
             `);
 
-            // アニメーション終了後に削除
+            heart.setAttribute('animation__scale', `
+              property: scale;
+              to: ${scaleVal*1.5} ${scaleVal*1.5} ${scaleVal*1.5};
+              dur: ${600 + Math.random()*400};
+              easing: easeOutBack
+            `);
+
             heart.addEventListener('animationcomplete__move', () => {
               heart.parentNode.removeChild(heart);
             });
@@ -57,8 +58,13 @@
             container.appendChild(heart);
           }
 
-          // 一定間隔で heart を生成
-          setInterval(spawnHeart, 300); // 0.3秒ごとに追加
+          // 生成間隔をランダム化して自然に
+          function spawnLoop() {
+            spawnHeart();
+            setTimeout(spawnLoop, 200 + Math.random()*200); // 0.2~0.4秒間隔
+          }
+
+          spawnLoop();
         </script>
 
       </a-marker>
