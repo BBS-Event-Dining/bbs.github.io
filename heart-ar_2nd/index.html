@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>Heart AR Fountain</title>
+  <meta charset="utf-8" />
+  <title>Heart AR Frame</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
+
   <!-- AR.js -->
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 </head>
@@ -15,94 +16,47 @@
 <a-scene
   embedded
   vr-mode-ui="enabled: false"
-  arjs="sourceType: webcam; debugUIEnabled: false;"
-  renderer="colorManagement: true; physicallyCorrectLights: true">
+  arjs="
+    sourceType: webcam;
+    debugUIEnabled: false;
+  "
+  renderer="
+    colorManagement: true;
+    physicallyCorrectLights: false;
+    exposure: 1.6;
+  "
+>
 
   <!-- Hiro Marker -->
   <a-marker preset="hiro">
 
+    <!-- 🌞 環境光（超重要） -->
+    <a-light
+      type="ambient"
+      intensity="1.8">
+    </a-light>
+
+    <!-- 🌞 正面ライト -->
+    <a-light
+      type="directional"
+      position="0 1 1"
+      intensity="1.2">
+    </a-light>
+
     <!-- 額縁（Pixel7a 縦フル想定） -->
     <a-entity
       id="frame"
-      gltf-model="frame.glb"
-      position="0 0 0"
-      scale="1.8 1.8 1.8">
+      gltf-model="url(frame.glb)"
+      position="0 0 -0.5"
+      scale="3.2 3.2 3.2">
     </a-entity>
-
-    <!-- heart emit 用 -->
-    <a-entity id="emit-root"></a-entity>
 
   </a-marker>
 
+  <!-- カメラ -->
   <a-entity camera></a-entity>
+
 </a-scene>
-
-<script>
-fetch('./emit_points.json')
-  .then(res => res.json())
-  .then(points => {
-
-    const root = document.querySelector('#emit-root');
-
-    points.forEach((p, i) => {
-      setInterval(() => {
-        spawnHeart(p);
-      }, 400 + Math.random() * 400);
-    });
-
-    function spawnHeart(p) {
-
-      const heart = document.createElement('a-entity');
-
-      // ランダム要素
-      const scale = 0.15 + Math.random() * 0.2;
-      const rotY = Math.random() * 360;
-      const rotX = -20 + Math.random() * 40;
-
-      // 噴水っぽい方向
-      const xOffset = (Math.random() - 0.5) * 0.6;
-      const yOffset = 0.6 + Math.random() * 0.6;
-      const zOffset = -0.8 - Math.random() * 0.6;
-
-      heart.setAttribute('gltf-model', 'heart.glb');
-      heart.setAttribute('position', `${p.x} ${p.y} ${p.z}`);
-      heart.setAttribute('scale', `${scale} ${scale} ${scale}`);
-      heart.setAttribute('rotation', `${rotX} ${rotY} 0`);
-
-      // 移動（ふわっと噴水）
-      heart.setAttribute('animation__move', {
-        property: 'position',
-        to: `${p.x + xOffset} ${p.y + yOffset} ${p.z + zOffset}`,
-        dur: 2000 + Math.random() * 1000,
-        easing: 'easeOutQuad'
-      });
-
-      // 回転
-      heart.setAttribute('animation__rot', {
-        property: 'rotation',
-        to: `${rotX + 180} ${rotY + 360} 0`,
-        dur: 2500,
-        easing: 'linear'
-      });
-
-      // フェードアウト
-      heart.setAttribute('animation__fade', {
-        property: 'scale',
-        to: '0 0 0',
-        dur: 800,
-        delay: 2000,
-        easing: 'easeInQuad'
-      });
-
-      root.appendChild(heart);
-
-      // 自動削除
-      setTimeout(() => {
-        root.removeChild(heart);
-      }, 3000);
-    }
-  });
-</script>
 
 </body>
 </html>
