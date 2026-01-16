@@ -1,104 +1,157 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AR Frame Capture</title>
+<meta charset="utf-8" />
+<title>Valentine AR Frame</title>
+
+<!-- A-Frame -->
+<script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
+
+<!-- AR.js -->
+<script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+
 <style>
-  body {
-    margin: 0;
-    overflow: hidden;
-    background: black;
-  }
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #000;
+}
 
-  #camera {
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  /* frame（今までの半分サイズ） */
-  #frame {
-    position: fixed;
-    inset: 0;
-    margin: auto;
-    width: 50vw;
-    height: 50vw;
-    max-width: 300px;
-    max-height: 300px;
-    border: 6px solid white;
-    box-sizing: border-box;
-    pointer-events: none;
-  }
-
-  #shoot {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    background: white;
-    border: none;
-  }
+#shoot {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  padding: 14px 28px;
+  font-size: 16px;
+  border-radius: 30px;
+  border: none;
+  background: #ff4d6d;
+  color: #fff;
+}
 </style>
 </head>
 
 <body>
 
-<video id="camera" autoplay playsinline></video>
-<div id="frame"></div>
-<button id="shoot"></button>
-
-<!-- 保存用canvas（非表示） -->
+<button id="shoot">📸 撮影</button>
 <canvas id="capture" style="display:none;"></canvas>
 
+<a-scene
+  embedded
+  vr-mode-ui="enabled:false"
+  arjs="sourceType:webcam; debugUIEnabled:false;"
+  renderer="colorManagement:true; exposure:1.3;"
+>
+
+  <!-- Marker -->
+  <a-marker preset="hiro">
+
+    <!-- Light（20%減） -->
+    <a-light type="ambient" intensity="1.4"></a-light>
+    <a-light type="directional" position="0 1 1" intensity="1.0"></a-light>
+
+    <!-- Frame（半分サイズ） -->
+    <a-entity
+      id="frame"
+      gltf-model="url(frame.glb)"
+      position="0 0 -0.5"
+      scale="1.6 1.6 1.6">
+    </a-entity>
+
+    <!-- Heart container -->
+    <a-entity id="heartContainer"></a-entity>
+
+  </a-marker>
+
+  <a-entity camera></a-entity>
+</a-scene>
+
 <script>
-const video = document.getElementById("camera");
-const frame = document.getElementById("frame");
+/* ===============================
+   Heart生成（frame内ランダム）
+================================ */
+const heartContainer = document.getElementById("heartContainer");
+
+function spawnHeart() {
+  const heart = document.createElement("a-entity");
+  heart.setAttribute("gltf-model", "url(heart.glb)");
+
+  // frame内ランダム
+  const x = (Math.random() - 0.5) * 0.8;
+  const y = Math.random() * 0.6 + 0.2;
+  const z = 0;
+
+  heart.setAttribute("position", `${x} ${y} ${z}`);
+  heart.setAttribute("scale", "0.25 0.25 0.25");
+
+  // 艶・ハイライト（Three.js側で上書き）
+  heart.addEventListener("model-loaded", e => {
+    e.detail.model.traverse(obj => {
+      if (obj.isMesh) {
+        obj.material.metalness = 0.6;
+        obj.material.roughness = 0.15;
+        obj.material.envMapIntensity = 1.2;
+      }
+    });
+  });
+
+  // 上昇アニメ
+  heart.setAttribute("animation", {
+    property: "position",
+    to: `${x} ${y + 0.8} ${z}`,
+    dur: 2500,
+    easing: "easeOutQuad"
+  });
+
+  heartContainer.appendChild(heart);
+
+  setTimeout(() => heart.remove(), 2600);
+}
+
+// 定期散布
+setInterval(spawnHeart, 600);
+
+
+/* ===============================
+   撮影処理（Android対策完全版）
+================================ */
 const canvas = document.getElementById("capture");
 const ctx = canvas.getContext("2d");
+const video = document.querySelector("video");
 
-// カメラ起動
-navigator.mediaDevices.getUserMedia({
-  video: { facingMode: "environment" },
-  audio: false
-}).then(stream => {
-  video.srcObject = stream;
+let videoReady = false;
+
+// 超重要：canplay待ち
+video.addEventListener("canplay", () => {
+  videoReady = true;
 });
 
-// 撮影処理
 document.getElementById("shoot").onclick = () => {
+
+  if (!videoReady || video.videoWidth === 0) {
+    alert("カメラ準備中です。もう一度押してください");
+    return;
+  }
+
   const vw = video.videoWidth;
   const vh = video.videoHeight;
 
   canvas.width = vw;
   canvas.height = vh;
 
-  // ① カメラ映像
+  // カメラ映像
   ctx.drawImage(video, 0, 0, vw, vh);
 
-  // ② frame合成
-  const rect = frame.getBoundingClientRect();
-  const scaleX = vw / window.innerWidth;
-  const scaleY = vh / window.innerHeight;
-
-  ctx.strokeStyle = "white";
-  ctx.lineWidth = 12;
-  ctx.strokeRect(
-    rect.left * scaleX,
-    rect.top * scaleY,
-    rect.width * scaleX,
-    rect.height * scaleY
-  );
+  // AR canvas（three.js）
+  const arCanvas = document.querySelector("canvas.a-canvas");
+  ctx.drawImage(arCanvas, 0, 0, vw, vh);
 
   // 保存
   const a = document.createElement("a");
   a.href = canvas.toDataURL("image/png");
-  a.download = "ar_capture.png";
+  a.download = "valentine_ar.png";
   a.click();
 };
 </script>
