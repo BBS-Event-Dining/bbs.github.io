@@ -3,28 +3,19 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-
 <title>Valentine AR Frame</title>
 
-<!-- A-Frame -->
 <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
-
-<!-- AR.js -->
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
 <style>
-html,body {
-  margin:0;
-  overflow:hidden;
-  background:black;
-}
-#fallback {
-  position:fixed;
-  inset:0;
+html,body{margin:0;overflow:hidden;background:black;}
+#fallback{
+  position:fixed;inset:0;
   display:none;
   justify-content:center;
   align-items:center;
-  background:rgba(0,0,0,0.6);
+  background:rgba(0,0,0,.6);
   color:white;
   font-size:18px;
   z-index:99999;
@@ -34,93 +25,71 @@ html,body {
 
 <body>
 
-<!-- UI iframe（ARと完全分離） -->
+<!-- UI iframe -->
 <iframe
-  srcdoc='
+srcdoc='
 <!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-body{
-  margin:0;
-  background:transparent;
-  display:flex;
-  justify-content:center;
-  align-items:flex-end;
-  height:100vh;
-}
-button{
-  margin-bottom:20px;
-  padding:16px 32px;
-  font-size:16px;
-  border-radius:30px;
-  border:none;
-}
+body{margin:0;background:transparent;display:flex;justify-content:center;align-items:flex-end;height:100vh;}
+button{margin-bottom:20px;padding:16px 32px;font-size:16px;border-radius:30px;border:none;}
 </style>
 </head>
 <body>
 <button ontouchstart="shoot()" onclick="shoot()">📸 撮影</button>
 <script>
-function shoot(){
-  parent.postMessage("shoot","*");
-}
+function shoot(){ parent.postMessage("shoot","*"); }
 </script>
 </body>
 </html>'
-  style="position:fixed; inset:0; border:none; z-index:9999;">
+style="position:fixed;inset:0;border:none;z-index:9999;">
 </iframe>
 
-<!-- fallback -->
 <div id="fallback">
-  撮影できないため<br>
-  端末のスクリーンショットをご利用ください
+撮影できない場合は<br>
+端末のスクリーンショットをご利用ください
 </div>
 
 <a-scene
-  embedded
-  vr-mode-ui="enabled:false"
-  renderer="preserveDrawingBuffer:true; antialias:true"
-  arjs="sourceType:webcam; debugUIEnabled:false;"
+embedded
+vr-mode-ui="enabled:false"
+renderer="preserveDrawingBuffer:true; antialias:true"
+arjs="sourceType:webcam; debugUIEnabled:false;"
 >
 
-  <a-marker preset="hiro">
+<a-marker preset="hiro">
 
-    <!-- 環境光（20%減） -->
-    <a-light type="ambient" intensity="1.4"></a-light>
+  <!-- 光量 20%減 -->
+  <a-light type="ambient" intensity="1.4"></a-light>
+  <a-light type="directional" position="1 2 1" intensity="1.0"></a-light>
 
-    <!-- ハイライト用 -->
-    <a-light type="directional" position="1 2 1" intensity="1.0"></a-light>
+  <!-- frame（60cmマーカー / 2〜3m / 2人対応） -->
+  <a-entity
+    id="frame"
+    gltf-model="url(frame.glb)"
+    position="0 0 -0.6"
+    scale="2.4 2.4 2.4">
+  </a-entity>
 
-    <!-- frame（小さめ・2人対応） -->
-    <a-entity
-      id="frame"
-      gltf-model="url(frame.glb)"
-      position="0 0 -0.4"
-      scale="1.6 1.6 1.6">
-    </a-entity>
+  <!-- heart（frame内部想定） -->
+  <a-entity
+    id="heart"
+    gltf-model="url(heart.glb)"
+    position="0 0 0"
+    scale="0.35 0.35 0.35"
+    animation="property:rotation; to:0 360 0; loop:true; dur:5000">
+  </a-entity>
 
-    <!-- heart -->
-    <a-entity
-      id="heart"
-      gltf-model="url(heart.glb)"
-      position="0 0 0"
-      scale="0.3 0.3 0.3"
-      animation="property:rotation; to:0 360 0; loop:true; dur:6000">
-    </a-entity>
+</a-marker>
 
-  </a-marker>
-
-  <a-entity camera></a-entity>
+<a-entity camera></a-entity>
 </a-scene>
 
 <script>
-let failed = false;
-
-window.addEventListener("message", e => {
-  if(e.data === "shoot"){
-    shoot();
-  }
+window.addEventListener("message",e=>{
+  if(e.data==="shoot") shoot();
 });
 
 function shoot(){
@@ -128,26 +97,18 @@ function shoot(){
   alert("shoot fired");
 
   try{
-    const scene = document.querySelector("a-scene");
-    const canvas = scene.renderer.domElement;
+    const scene=document.querySelector("a-scene");
+    const canvas=scene.renderer.domElement;
+    if(!canvas||canvas.width===0) throw "canvas not ready";
 
-    if(!canvas || canvas.width === 0){
-      throw "canvas not ready";
-    }
+    const img=canvas.toDataURL("image/png");
+    if(img.length<1000) throw "empty";
 
-    const img = canvas.toDataURL("image/png");
-
-    if(img.length < 1000){
-      throw "empty image";
-    }
-
-    const a = document.createElement("a");
-    a.href = img;
-    a.download = "valentine_ar.png";
+    const a=document.createElement("a");
+    a.href=img;
+    a.download="valentine_ar.png";
     a.click();
-
   }catch(e){
-    console.warn("capture failed", e);
     document.getElementById("fallback").style.display="flex";
   }
 }
