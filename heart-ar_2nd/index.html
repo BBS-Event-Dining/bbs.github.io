@@ -1,81 +1,74 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Valentine AR Frame</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+
+<title>Valentine AR</title>
 
 <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
 <style>
 html,body{margin:0;overflow:hidden;background:black;}
+
+#shootBtn{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:9999;
+  padding:16px 32px;
+  font-size:16px;
+  border-radius:30px;
+  border:none;
+}
+
 #fallback{
-  position:fixed;inset:0;
+  position:fixed;
+  inset:0;
   display:none;
   justify-content:center;
   align-items:center;
+  text-align:center;
   background:rgba(0,0,0,.6);
   color:white;
   font-size:18px;
-  z-index:99999;
+  z-index:10000;
 }
 </style>
 </head>
 
 <body>
 
-<!-- UI iframe -->
-<iframe
-srcdoc='
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-body{margin:0;background:transparent;display:flex;justify-content:center;align-items:flex-end;height:100vh;}
-button{margin-bottom:20px;padding:16px 32px;font-size:16px;border-radius:30px;border:none;}
-</style>
-</head>
-<body>
-<button ontouchstart="shoot()" onclick="shoot()">📸 撮影</button>
-<script>
-function shoot(){ parent.postMessage("shoot","*"); }
-</script>
-</body>
-</html>'
-style="position:fixed;inset:0;border:none;z-index:9999;">
-</iframe>
+<button id="shootBtn">📸 撮影</button>
 
 <div id="fallback">
-撮影できない場合は<br>
+撮影保存ができませんでした<br>
 端末のスクリーンショットをご利用ください
 </div>
 
 <a-scene
-embedded
-vr-mode-ui="enabled:false"
-renderer="preserveDrawingBuffer:true; antialias:true"
-arjs="sourceType:webcam; debugUIEnabled:false;"
+  embedded
+  vr-mode-ui="enabled:false"
+  arjs="sourceType:webcam; debugUIEnabled:false;"
 >
 
 <a-marker preset="hiro">
 
-  <!-- 光量 20%減 -->
+  <!-- 光量 -->
   <a-light type="ambient" intensity="1.4"></a-light>
   <a-light type="directional" position="1 2 1" intensity="1.0"></a-light>
 
-  <!-- frame（60cmマーカー / 2〜3m / 2人対応） -->
+  <!-- frame -->
   <a-entity
-    id="frame"
     gltf-model="url(frame.glb)"
     position="0 0 -0.6"
     scale="2.4 2.4 2.4">
   </a-entity>
 
-  <!-- heart（frame内部想定） -->
+  <!-- heart -->
   <a-entity
-    id="heart"
     gltf-model="url(heart.glb)"
     position="0 0 0"
     scale="0.35 0.35 0.35"
@@ -88,26 +81,33 @@ arjs="sourceType:webcam; debugUIEnabled:false;"
 </a-scene>
 
 <script>
-window.addEventListener("message",e=>{
-  if(e.data==="shoot") shoot();
-});
+const btn=document.getElementById("shootBtn");
 
-function shoot(){
+btn.addEventListener("click",capture);
+btn.addEventListener("touchstart",capture);
+
+function capture(){
   console.log("shoot fired");
   alert("shoot fired");
 
   try{
     const scene=document.querySelector("a-scene");
-    const canvas=scene.renderer.domElement;
-    if(!canvas||canvas.width===0) throw "canvas not ready";
+    scene.renderer.preserveDrawingBuffer=true;
 
-    const img=canvas.toDataURL("image/png");
-    if(img.length<1000) throw "empty";
+    setTimeout(()=>{
+      const canvas=scene.renderer.domElement;
+      const img=canvas.toDataURL("image/png");
 
-    const a=document.createElement("a");
-    a.href=img;
-    a.download="valentine_ar.png";
-    a.click();
+      if(!img || img.length<1000) throw "empty";
+
+      const a=document.createElement("a");
+      a.href=img;
+      a.download="valentine_ar.png";
+      a.click();
+
+      scene.renderer.preserveDrawingBuffer=false;
+    },300);
+
   }catch(e){
     document.getElementById("fallback").style.display="flex";
   }
