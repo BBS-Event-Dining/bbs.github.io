@@ -13,6 +13,7 @@
   <script>
     /* ===============================
        frame内部ランダム散布Emitter
+       修正版：必ずframe内にspawn
     =============================== */
     AFRAME.registerComponent('frame-heart-emitter', {
       init: function () {
@@ -20,7 +21,15 @@
         const sceneEl = frameEl.sceneEl;
 
         frameEl.addEventListener('model-loaded', () => {
-          const frameObj = frameEl.object3D;
+          const frameObj = frameEl.getObject3D('mesh');
+          if (!frameObj) {
+            console.warn('Frame object not ready');
+            return;
+          }
+
+          // ワールド行列更新
+          frameObj.updateMatrixWorld(true);
+
           const box = new THREE.Box3().setFromObject(frameObj);
 
           // 初期5個生成
@@ -36,15 +45,24 @@
       },
 
       spawnHeart: function (box, sceneEl) {
-        const x = THREE.MathUtils.lerp(box.min.x + 0.1, box.max.x - 0.1, Math.random());
-        const y = THREE.MathUtils.lerp(box.min.y + 0.1, box.max.y - 0.1, Math.random());
-        const z = box.max.z - 0.02;
+        const x = THREE.MathUtils.lerp(box.min.x + 0.05, box.max.x - 0.05, Math.random());
+        const y = THREE.MathUtils.lerp(box.min.y + 0.05, box.max.y - 0.05, Math.random());
+        const z = box.max.z - 0.02; // 前面から出す
 
         const heart = document.createElement('a-entity');
         heart.setAttribute('gltf-model', '#heartModel');
         heart.setAttribute('position', `${x} ${y} ${z}`);
         heart.setAttribute('scale', '0.15 0.15 0.15');
         heart.setAttribute('floating-heart', '');
+
+        // 💖 ツヤ用ライト（heartに追従）
+        const glossLight = document.createElement('a-light');
+        glossLight.setAttribute('type', 'point');
+        glossLight.setAttribute('intensity', '0.35');
+        glossLight.setAttribute('distance', '0.6');
+        glossLight.setAttribute('decay', '2');
+        glossLight.setAttribute('position', '0 0.05 0.1');
+        heart.appendChild(glossLight);
 
         sceneEl.appendChild(heart);
       }
@@ -88,18 +106,11 @@
   <!-- Hiro Marker -->
   <a-marker preset="hiro">
 
-    <!-- 🌞 環境光（-20%） -->
-    <a-light
-      type="ambient"
-      intensity="1.44">
-    </a-light>
+    <!-- 環境光（-20%） -->
+    <a-light type="ambient" intensity="1.44"></a-light>
 
-    <!-- 🌞 正面ライト（-20%） -->
-    <a-light
-      type="directional"
-      position="0 1 1"
-      intensity="0.96">
-    </a-light>
+    <!-- 正面ライト（-20%） -->
+    <a-light type="directional" position="0 1 1" intensity="0.96"></a-light>
 
     <!-- フレーム -->
     <a-entity
