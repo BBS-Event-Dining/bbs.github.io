@@ -9,6 +9,58 @@
 
   <!-- AR.js -->
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+
+  <script>
+    /* ===============================
+       frame内部ランダム散布Emitter
+    =============================== */
+    AFRAME.registerComponent('frame-heart-emitter', {
+      init: function () {
+        const frameEl = this.el;
+        const sceneEl = frameEl.sceneEl;
+
+        frameEl.addEventListener('model-loaded', () => {
+          const frameObj = frameEl.object3D;
+          const box = new THREE.Box3().setFromObject(frameObj);
+
+          // 初期5個生成
+          for (let i = 0; i < 5; i++) {
+            this.spawnHeart(box, sceneEl);
+          }
+
+          // 定期生成
+          setInterval(() => {
+            this.spawnHeart(box, sceneEl);
+          }, 1000);
+        });
+      },
+
+      spawnHeart: function (box, sceneEl) {
+        const x = THREE.MathUtils.lerp(box.min.x + 0.1, box.max.x - 0.1, Math.random());
+        const y = THREE.MathUtils.lerp(box.min.y + 0.1, box.max.y - 0.1, Math.random());
+        const z = box.max.z - 0.02;
+
+        const heart = document.createElement('a-entity');
+        heart.setAttribute('gltf-model', '#heartModel');
+        heart.setAttribute('position', `${x} ${y} ${z}`);
+        heart.setAttribute('scale', '0.15 0.15 0.15');
+        heart.setAttribute('floating-heart', '');
+
+        sceneEl.appendChild(heart);
+      }
+    });
+
+    /* ===============================
+       heart浮遊アニメーション
+    =============================== */
+    AFRAME.registerComponent('floating-heart', {
+      tick: function (time, delta) {
+        const obj = this.el.object3D;
+        obj.position.y += delta * 0.00025;
+        obj.rotation.y += delta * 0.0004;
+      }
+    });
+  </script>
 </head>
 
 <body style="margin:0; overflow:hidden;">
@@ -27,33 +79,40 @@
   "
 >
 
+  <!-- Assets -->
+  <a-assets>
+    <a-asset-item id="frameModel" src="frame.glb"></a-asset-item>
+    <a-asset-item id="heartModel" src="heart.glb"></a-asset-item>
+  </a-assets>
+
   <!-- Hiro Marker -->
   <a-marker preset="hiro">
 
-    <!-- 🌞 環境光（超重要） -->
+    <!-- 🌞 環境光（-20%） -->
     <a-light
       type="ambient"
-      intensity="1.8">
+      intensity="1.44">
     </a-light>
 
-    <!-- 🌞 正面ライト -->
+    <!-- 🌞 正面ライト（-20%） -->
     <a-light
       type="directional"
       position="0 1 1"
-      intensity="1.2">
+      intensity="0.96">
     </a-light>
 
-    <!-- 額縁（Pixel7a 縦フル想定） -->
+    <!-- フレーム -->
     <a-entity
       id="frame"
-      gltf-model="url(frame.glb)"
+      gltf-model="#frameModel"
       position="0 0 -0.5"
-      scale="3.2 3.2 3.2">
+      scale="3.2 3.2 3.2"
+      frame-heart-emitter>
     </a-entity>
 
   </a-marker>
 
-  <!-- カメラ -->
+  <!-- Camera -->
   <a-entity camera></a-entity>
 
 </a-scene>
