@@ -24,7 +24,7 @@ html,body{margin:0;overflow:hidden;background:black;}
   border:none;
 }
 
-#fallback{
+#guide{
   position:fixed;
   inset:0;
   display:none;
@@ -43,9 +43,9 @@ html,body{margin:0;overflow:hidden;background:black;}
 
 <button id="shootBtn">📸 撮影</button>
 
-<div id="fallback">
-撮影保存ができませんでした<br>
-端末のスクリーンショットをご利用ください
+<div id="guide">
+この状態で<br>
+📱 端末のスクリーンショットを撮ってください
 </div>
 
 <a-scene
@@ -56,18 +56,15 @@ html,body{margin:0;overflow:hidden;background:black;}
 
 <a-marker preset="hiro">
 
-  <!-- 光量 -->
   <a-light type="ambient" intensity="1.4"></a-light>
   <a-light type="directional" position="1 2 1" intensity="1.0"></a-light>
 
-  <!-- frame -->
   <a-entity
     gltf-model="url(frame.glb)"
     position="0 0 -0.6"
     scale="2.4 2.4 2.4">
   </a-entity>
 
-  <!-- heart -->
   <a-entity
     gltf-model="url(heart.glb)"
     position="0 0 0"
@@ -82,35 +79,14 @@ html,body{margin:0;overflow:hidden;background:black;}
 
 <script>
 const btn=document.getElementById("shootBtn");
+const guide=document.getElementById("guide");
 
-btn.addEventListener("click",capture);
-btn.addEventListener("touchstart",capture);
+btn.addEventListener("click",showGuide);
+btn.addEventListener("touchstart",showGuide);
 
-function capture(){
-  console.log("shoot fired");
-  alert("shoot fired");
-
-  try{
-    const scene=document.querySelector("a-scene");
-    scene.renderer.preserveDrawingBuffer=true;
-
-    setTimeout(()=>{
-      const canvas=scene.renderer.domElement;
-      const img=canvas.toDataURL("image/png");
-
-      if(!img || img.length<1000) throw "empty";
-
-      const a=document.createElement("a");
-      a.href=img;
-      a.download="valentine_ar.png";
-      a.click();
-
-      scene.renderer.preserveDrawingBuffer=false;
-    },300);
-
-  }catch(e){
-    document.getElementById("fallback").style.display="flex";
-  }
+function showGuide(){
+  guide.style.display="flex";
+  setTimeout(()=>guide.style.display="none",3000);
 }
 </script>
 
