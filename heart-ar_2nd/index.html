@@ -14,34 +14,41 @@ body {
   background: #000;
 }
 
-/* AR.jsが作る要素はタップ無効 */
-video, canvas {
+/* AR表示はすべてタップ無効 */
+a-scene,
+video,
+canvas {
   pointer-events: none;
 }
 
-/* 撮影ボタン */
-#shoot {
+/* UIのみタップ有効 */
+#ui {
   position: fixed;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
   pointer-events: auto;
-  touch-action: manipulation;
+}
 
+#shoot {
   padding: 14px 28px;
   border-radius: 30px;
   border: none;
   font-size: 16px;
   background: #ff4d6d;
   color: #fff;
+  touch-action: manipulation;
 }
 </style>
 </head>
 
 <body>
 
-<button id="shoot">📸 撮影</button>
+<div id="ui">
+  <button id="shoot">📸 撮影</button>
+</div>
+
 <canvas id="capture" style="display:none;"></canvas>
 
 <a-scene
@@ -53,16 +60,19 @@ video, canvas {
 
   <a-marker preset="hiro">
 
+    <!-- light -->
     <a-light type="ambient" intensity="1.4"></a-light>
     <a-light type="directional" position="0 1 1" intensity="1.0"></a-light>
 
+    <!-- frame（正しいサイズ） -->
     <a-entity
       id="frame"
       gltf-model="url(frame.glb)"
-      position="0 0 -0.5"
-      scale="1.6 1.6 1.6">
+      position="0 0 0"
+      scale="0.7 0.7 0.7">
     </a-entity>
 
+    <!-- hearts -->
     <a-entity id="heartContainer"></a-entity>
 
   </a-marker>
@@ -72,7 +82,7 @@ video, canvas {
 
 <script>
 /* =========================
-   Heart生成
+   heart生成
 ========================= */
 const heartContainer = document.getElementById("heartContainer");
 
@@ -80,11 +90,11 @@ setInterval(() => {
   const heart = document.createElement("a-entity");
   heart.setAttribute("gltf-model", "url(heart.glb)");
 
-  const x = (Math.random() - 0.5) * 0.8;
-  const y = Math.random() * 0.6 + 0.2;
+  const x = (Math.random() - 0.5) * 0.6;
+  const y = Math.random() * 0.4 + 0.2;
 
   heart.setAttribute("position", `${x} ${y} 0`);
-  heart.setAttribute("scale", "0.25 0.25 0.25");
+  heart.setAttribute("scale", "0.18 0.18 0.18");
 
   heart.addEventListener("model-loaded", e => {
     e.detail.model.traverse(o => {
@@ -97,17 +107,17 @@ setInterval(() => {
 
   heart.setAttribute("animation", {
     property: "position",
-    to: `${x} ${y + 0.6} 0`,
-    dur: 2500,
+    to: `${x} ${y + 0.5} 0`,
+    dur: 2200,
     easing: "easeOutQuad"
   });
 
   heartContainer.appendChild(heart);
-  setTimeout(() => heart.remove(), 2600);
+  setTimeout(() => heart.remove(), 2300);
 }, 700);
 
 /* =========================
-   撮影処理（marker安定）
+   撮影（marker用・確定）
 ========================= */
 const canvas = document.getElementById("capture");
 const ctx = canvas.getContext("2d");
@@ -131,7 +141,7 @@ function shoot(e) {
   canvas.width = w;
   canvas.height = h;
 
-  // marker版は video を撮れば ARも写る
+  // marker使用時は video を撮ればARも写る
   ctx.drawImage(video, 0, 0, w, h);
 
   const a = document.createElement("a");
@@ -140,7 +150,7 @@ function shoot(e) {
   a.click();
 }
 
-shootBtn.addEventListener("touchstart", shoot);
+shootBtn.addEventListener("touchstart", shoot, { passive:false });
 shootBtn.addEventListener("click", shoot);
 </script>
 
