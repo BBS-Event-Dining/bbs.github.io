@@ -11,7 +11,7 @@
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
   <script>
-    // 💖 frame内からheartを出す
+    // 💖 frame内からheartをランダム生成
     AFRAME.registerComponent('heart-emitter', {
       init: function () {
         this.spawn();
@@ -20,23 +20,23 @@
       spawn: function () {
         const heart = document.createElement('a-entity');
 
-        // frameローカル内ランダム
+        // frameローカル座標
         const x = (Math.random() - 0.5) * 0.4;
         const y = Math.random() * 0.3 + 0.15;
         const z = 0.04;
 
         heart.setAttribute('position', `${x} ${y} ${z}`);
         heart.setAttribute('scale', '0.12 0.12 0.12');
-        heart.setAttribute('gltf-model', 'url(heart.glb?v=4)');
+        heart.setAttribute('gltf-model', 'url(heart.glb?v=5)');
 
-        // ✨ HTML側でツヤを強制
+        // ✨ ツヤ強制（HTML側）
         heart.setAttribute('material', {
           metalness: 0.85,
           roughness: 0.15,
           color: '#ff4f8b'
         });
 
-        // 上昇
+        // 上昇アニメーション
         heart.setAttribute('animation__float', {
           property: 'position',
           to: `${x} ${y + 0.45} ${z}`,
@@ -88,14 +88,20 @@
   embedded
   vr-mode-ui="enabled:false"
   arjs="sourceType: webcam; debugUIEnabled: false;"
-  renderer="colorManagement: true; antialias: true; exposure: 1.6;"
+  renderer="
+    colorManagement: true;
+    antialias: true;
+    exposure: 1.6;
+    preserveDrawingBuffer: true;
+  "
 >
 
   <a-marker preset="hiro">
 
-    <!-- 🌞 ライト（控えめ） -->
+    <!-- 🌞 環境光 -->
     <a-light type="ambient" intensity="1.4"></a-light>
 
+    <!-- 🌞 正面ライト -->
     <a-light
       type="directional"
       position="0 1 1"
@@ -109,10 +115,10 @@
       intensity="2.0">
     </a-light>
 
-    <!-- 🖼 frame（半分サイズ） -->
+    <!-- 🖼 frame（小さめ・2人対応） -->
     <a-entity
       id="frame"
-      gltf-model="url(frame.glb?v=4)"
+      gltf-model="url(frame.glb?v=5)"
       position="0 0 -0.55"
       scale="1.3 1.3 1.3"
       heart-emitter>
@@ -123,18 +129,26 @@
   <a-entity camera></a-entity>
 </a-scene>
 
-<!-- 📸 スクリーンショット -->
+<!-- 📸 スクリーンショット処理（Android白対策済み） -->
 <script>
 document.getElementById('shot').addEventListener('click', () => {
   const scene = document.querySelector('a-scene');
-  const canvas = scene.renderer.domElement;
+  const renderer = scene.renderer;
 
-  const image = canvas.toDataURL('image/png');
+  // 🔑 2フレーム待ち（超重要）
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
 
-  const a = document.createElement('a');
-  a.href = image;
-  a.download = 'valentine-ar.png';
-  a.click();
+      const canvas = renderer.domElement;
+      const image = canvas.toDataURL('image/png');
+
+      const a = document.createElement('a');
+      a.href = image;
+      a.download = 'valentine-ar.png';
+      a.click();
+
+    });
+  });
 });
 </script>
 
