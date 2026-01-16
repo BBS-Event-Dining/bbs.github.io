@@ -1,32 +1,24 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<title>Valentine AR Frame</title>
+<meta charset="utf-8">
+<title>Valentine Floor AR</title>
 
-<!-- A-Frame -->
 <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
-
-<!-- AR.js -->
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
 <style>
-body {
-  margin: 0;
-  overflow: hidden;
-  background: #000;
-}
-
+body { margin:0; overflow:hidden; background:#000; }
 #shoot {
   position: fixed;
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 9999;
+  z-index: 10;
   padding: 14px 28px;
-  font-size: 16px;
   border-radius: 30px;
   border: none;
+  font-size: 16px;
   background: #ff4d6d;
   color: #fff;
 }
@@ -45,110 +37,108 @@ body {
   renderer="colorManagement:true; exposure:1.3;"
 >
 
-  <!-- Marker -->
-  <a-marker preset="hiro">
+  <!-- Lights -->
+  <a-light type="ambient" intensity="1.4"></a-light>
+  <a-light type="directional" position="0 2 1" intensity="1.0"></a-light>
 
-    <!-- Light（20%減） -->
-    <a-light type="ambient" intensity="1.4"></a-light>
-    <a-light type="directional" position="0 1 1" intensity="1.0"></a-light>
+  <!-- Frame -->
+  <a-entity
+    id="frame"
+    gltf-model="url(frame.glb)"
+    scale="1.6 1.6 1.6"
+    visible="false">
+  </a-entity>
 
-    <!-- Frame（半分サイズ） -->
-    <a-entity
-      id="frame"
-      gltf-model="url(frame.glb)"
-      position="0 0 -0.5"
-      scale="1.6 1.6 1.6">
-    </a-entity>
-
-    <!-- Heart container -->
-    <a-entity id="heartContainer"></a-entity>
-
-  </a-marker>
+  <!-- Hearts -->
+  <a-entity id="heartContainer"></a-entity>
 
   <a-entity camera></a-entity>
 </a-scene>
 
 <script>
-/* ===============================
-   Heart生成（frame内ランダム）
-================================ */
+/* ========= floor placement ========= */
+let placed = false;
+
+window.addEventListener("click", () => {
+  if (placed) return;
+
+  document.getElementById("frame")
+    .setAttribute("position", "0 -0.5 -2");
+
+  document.getElementById("frame")
+    .setAttribute("visible", "true");
+
+  placed = true;
+});
+
+/* ========= heart spawn ========= */
 const heartContainer = document.getElementById("heartContainer");
 
-function spawnHeart() {
-  const heart = document.createElement("a-entity");
-  heart.setAttribute("gltf-model", "url(heart.glb)");
+setInterval(() => {
+  if (!placed) return;
 
-  // frame内ランダム
+  const h = document.createElement("a-entity");
+  h.setAttribute("gltf-model", "url(heart.glb)");
+
   const x = (Math.random() - 0.5) * 0.8;
-  const y = Math.random() * 0.6 + 0.2;
-  const z = 0;
+  h.setAttribute("position", `${x} 0 -2`);
+  h.setAttribute("scale", "0.25 0.25 0.25");
 
-  heart.setAttribute("position", `${x} ${y} ${z}`);
-  heart.setAttribute("scale", "0.25 0.25 0.25");
-
-  // 艶・ハイライト（Three.js側で上書き）
-  heart.addEventListener("model-loaded", e => {
-    e.detail.model.traverse(obj => {
-      if (obj.isMesh) {
-        obj.material.metalness = 0.6;
-        obj.material.roughness = 0.15;
-        obj.material.envMapIntensity = 1.2;
+  h.addEventListener("model-loaded", e => {
+    e.detail.model.traverse(o => {
+      if (o.isMesh) {
+        o.material.metalness = 0.7;
+        o.material.roughness = 0.15;
       }
     });
   });
 
-  // 上昇アニメ
-  heart.setAttribute("animation", {
+  h.setAttribute("animation", {
     property: "position",
-    to: `${x} ${y + 0.8} ${z}`,
-    dur: 2500,
-    easing: "easeOutQuad"
+    to: `${x} 1.2 -2`,
+    dur: 2500
   });
 
-  heartContainer.appendChild(heart);
+  heartContainer.appendChild(h);
+  setTimeout(() => h.remove(), 2600);
+}, 700);
 
-  setTimeout(() => heart.remove(), 2600);
-}
-
-// 定期散布
-setInterval(spawnHeart, 600);
-
-
-/* ===============================
-   撮影処理（Android対策完全版）
-================================ */
+/* ========= capture ========= */
 const canvas = document.getElementById("capture");
 const ctx = canvas.getContext("2d");
 const video = document.querySelector("video");
 
 let videoReady = false;
+video.addEventListener("canplay", () => videoReady = true);
 
-// 超重要：canplay待ち
-video.addEventListener("canplay", () => {
-  videoReady = true;
-});
+function drawSparkles(ctx,w,h){
+  for(let i=0;i<30;i++){
+    ctx.beginPath();
+    ctx.arc(Math.random()*w, Math.random()*h*0.6, 3, 0, Math.PI*2);
+    ctx.fillStyle="rgba(255,200,230,0.7)";
+    ctx.shadowColor="rgba(255,180,220,0.9)";
+    ctx.shadowBlur=12;
+    ctx.fill();
+  }
+}
 
 document.getElementById("shoot").onclick = () => {
+  if (!videoReady) return alert("準備中");
 
-  if (!videoReady || video.videoWidth === 0) {
-    alert("カメラ準備中です。もう一度押してください");
-    return;
-  }
+  const w = video.videoWidth;
+  const h = video.videoHeight;
 
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
+  canvas.width = w;
+  canvas.height = h;
 
-  canvas.width = vw;
-  canvas.height = vh;
+  ctx.drawImage(video, 0, 0, w, h);
 
-  // カメラ映像
-  ctx.drawImage(video, 0, 0, vw, vh);
+  const arCanvas =
+    document.querySelector("a-scene").renderer.domElement;
+  ctx.drawImage(arCanvas, 0, 0, w, h);
 
-  // AR canvas（three.js）
-  const arCanvas = document.querySelector("canvas.a-canvas");
-  ctx.drawImage(arCanvas, 0, 0, vw, vh);
+  drawSparkles(ctx, w, h);
 
-  // 保存
   const a = document.createElement("a");
   a.href = canvas.toDataURL("image/png");
   a.download = "valentine_ar.png";
