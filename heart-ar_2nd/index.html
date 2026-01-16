@@ -11,34 +11,30 @@
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
   <script>
-    // 💖 frame内ランダム位置からheart生成
+    // 💖 frame内からheartを出す
     AFRAME.registerComponent('heart-emitter', {
       init: function () {
         this.spawn();
-        setInterval(() => this.spawn(), 800);
+        setInterval(() => this.spawn(), 900);
       },
       spawn: function () {
         const heart = document.createElement('a-entity');
 
-        // frameローカル基準（額縁の中）
         const x = (Math.random() - 0.5) * 0.6;
         const y = Math.random() * 0.4 + 0.2;
-        const z = 0.05; // frameより手前
+        const z = 0.05;
 
         heart.setAttribute('position', `${x} ${y} ${z}`);
         heart.setAttribute('scale', '0.15 0.15 0.15');
+        heart.setAttribute('gltf-model', 'url(heart.glb?v=1)');
 
-        // ❤️ heartモデル
-        heart.setAttribute('gltf-model', 'url(heart.glb)');
-
-        // ✨ 強制ツヤマテリアル
+        // ✨ ツヤ強制
         heart.setAttribute('material', {
           metalness: 0.85,
           roughness: 0.15,
           color: '#ff4f8b'
         });
 
-        // ✨ キラッと回転＆上昇
         heart.setAttribute('animation__float', {
           property: 'position',
           to: `${x} ${y + 0.6} ${z}`,
@@ -55,48 +51,65 @@
 
         this.el.appendChild(heart);
 
-        // 消去
         setTimeout(() => {
           heart.parentNode && heart.parentNode.removeChild(heart);
         }, 3500);
       }
     });
   </script>
+
+  <style>
+    #shot {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 999;
+      padding: 14px 24px;
+      font-size: 16px;
+      border-radius: 30px;
+      border: none;
+      background: #ff4f8b;
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+  </style>
 </head>
 
 <body style="margin:0; overflow:hidden;">
 
+<!-- 📸 撮影ボタン -->
+<button id="shot">📸 撮影</button>
+
 <a-scene
   embedded
-  vr-mode-ui="enabled: false"
+  vr-mode-ui="enabled:false"
   arjs="sourceType: webcam; debugUIEnabled: false;"
-  renderer="colorManagement: true; exposure: 1.6;"
+  renderer="colorManagement: true; antialias: true; exposure: 1.6;"
 >
 
   <a-marker preset="hiro">
 
-    <!-- 🌞 環境光（20%減） -->
+    <!-- 🌞 ライト（20%減） -->
     <a-light type="ambient" intensity="1.4"></a-light>
 
-    <!-- 🌞 正面ライト（20%減） -->
     <a-light
       type="directional"
       position="0 1 1"
       intensity="1.0">
     </a-light>
 
-    <!-- ✨ ツヤ用ポイントライト -->
+    <!-- ✨ ツヤ用 -->
     <a-light
       type="point"
       position="0 0.5 0.5"
-      intensity="2.2"
-      color="#ffffff">
+      intensity="2.2">
     </a-light>
 
-    <!-- 🖼 額縁 -->
+    <!-- 🖼 frame -->
     <a-entity
       id="frame"
-      gltf-model="url(frame.glb)"
+      gltf-model="url(frame.glb?v=1)"
       position="0 0 -0.5"
       scale="3.2 3.2 3.2"
       heart-emitter>
@@ -105,8 +118,22 @@
   </a-marker>
 
   <a-entity camera></a-entity>
-
 </a-scene>
+
+<!-- 📸 スクリーンショット処理 -->
+<script>
+document.getElementById('shot').addEventListener('click', () => {
+  const scene = document.querySelector('a-scene');
+  const canvas = scene.renderer.domElement;
+
+  const image = canvas.toDataURL('image/png');
+
+  const a = document.createElement('a');
+  a.href = image;
+  a.download = 'valentine-ar.png';
+  a.click();
+});
+</script>
 
 </body>
 </html>
