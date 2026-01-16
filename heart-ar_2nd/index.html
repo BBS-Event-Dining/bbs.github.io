@@ -8,49 +8,51 @@
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
 <style>
-body { margin:0; overflow:hidden; background:#000; }
+body {
+  margin:0;
+  overflow:hidden;
+  background:#000;
+}
 
-#start {
+/* Safari対策：UIは最上位 */
+#ui {
   position: fixed;
   inset: 0;
-  background:#000;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:20;
-  font-size:20px;
+  pointer-events: none;
+  z-index: 9999;
 }
 
 #shoot {
-  position: fixed;
+  position: absolute;
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 10;
   padding: 14px 28px;
   border-radius: 30px;
   border: none;
   font-size: 16px;
   background: #ff4d6d;
   color: #fff;
-  display:none;
+  pointer-events: auto;
 }
 </style>
 </head>
 
 <body>
 
-<div id="start">▶ タップして開始</div>
-<button id="shoot">📸 撮影</button>
+<!-- UI Layer -->
+<div id="ui">
+  <button id="shoot">📸 撮影</button>
+</div>
+
 <canvas id="capture" style="display:none;"></canvas>
 
 <a-scene
-  id="scene"
   embedded
   vr-mode-ui="enabled:false"
+  arjs="sourceType:webcam; debugUIEnabled:false;"
   renderer="colorManagement:true; physicallyCorrectLights:true; exposure:1.4;"
-  style="display:none;"
+  style="pointer-events:none;"
 >
 
   <a-light type="ambient" intensity="1.6"></a-light>
@@ -70,33 +72,7 @@ body { margin:0; overflow:hidden; background:#000; }
 </a-scene>
 
 <script>
-/* ===== iOS camera start ===== */
-const start = document.getElementById("start");
-const scene = document.getElementById("scene");
-const shoot = document.getElementById("shoot");
-
-start.onclick = () => {
-  start.style.display = "none";
-  scene.style.display = "block";
-  shoot.style.display = "block";
-
-  scene.setAttribute(
-    "arjs",
-    "sourceType:webcam; debugUIEnabled:false;"
-  );
-
-  // iOS video対策
-  setTimeout(() => {
-    const video = document.querySelector("video");
-    if (video) {
-      video.setAttribute("playsinline", "");
-      video.setAttribute("muted", "");
-      video.play();
-    }
-  }, 500);
-};
-
-/* ===== heart spawn ===== */
+/* ===== Heart spawn ===== */
 const heartContainer = document.getElementById("heartContainer");
 
 setInterval(() => {
@@ -127,13 +103,17 @@ setInterval(() => {
   setTimeout(()=>h.remove(),2700);
 },700);
 
-/* ===== capture ===== */
+/* ===== Capture ===== */
+const shoot = document.getElementById("shoot");
 const canvas = document.getElementById("capture");
 const ctx = canvas.getContext("2d");
 
 shoot.onclick = () => {
   const video = document.querySelector("video");
-  if (!video || video.videoWidth === 0) return alert("カメラ準備中");
+  if (!video || video.videoWidth === 0) {
+    alert("カメラ準備中");
+    return;
+  }
 
   const w = video.videoWidth;
   const h = video.videoHeight;
@@ -141,8 +121,11 @@ shoot.onclick = () => {
   canvas.width = w;
   canvas.height = h;
 
-  ctx.drawImage(video,0,0,w,h);
-  ctx.drawImage(scene.renderer.domElement,0,0,w,h);
+  ctx.drawImage(video, 0, 0, w, h);
+  ctx.drawImage(
+    document.querySelector("a-scene").renderer.domElement,
+    0, 0, w, h
+  );
 
   const a = document.createElement("a");
   a.href = canvas.toDataURL("image/png");
