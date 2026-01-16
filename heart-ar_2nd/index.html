@@ -20,32 +20,35 @@
       spawn: function () {
         const heart = document.createElement('a-entity');
 
-        const x = (Math.random() - 0.5) * 0.6;
-        const y = Math.random() * 0.4 + 0.2;
-        const z = 0.05;
+        // frameローカル内ランダム
+        const x = (Math.random() - 0.5) * 0.4;
+        const y = Math.random() * 0.3 + 0.15;
+        const z = 0.04;
 
         heart.setAttribute('position', `${x} ${y} ${z}`);
-        heart.setAttribute('scale', '0.15 0.15 0.15');
-        heart.setAttribute('gltf-model', 'url(heart.glb?v=3)');
+        heart.setAttribute('scale', '0.12 0.12 0.12');
+        heart.setAttribute('gltf-model', 'url(heart.glb?v=4)');
 
-        // ✨ ツヤ強制
+        // ✨ HTML側でツヤを強制
         heart.setAttribute('material', {
           metalness: 0.85,
           roughness: 0.15,
           color: '#ff4f8b'
         });
 
+        // 上昇
         heart.setAttribute('animation__float', {
           property: 'position',
-          to: `${x} ${y + 0.6} ${z}`,
-          dur: 3000,
+          to: `${x} ${y + 0.45} ${z}`,
+          dur: 2800,
           easing: 'easeOutQuad'
         });
 
+        // 回転
         heart.setAttribute('animation__spin', {
           property: 'rotation',
           to: '0 360 0',
-          dur: 2000,
+          dur: 1800,
           loop: true
         });
 
@@ -53,7 +56,7 @@
 
         setTimeout(() => {
           heart.parentNode && heart.parentNode.removeChild(heart);
-        }, 3500);
+        }, 3200);
       }
     });
   </script>
@@ -65,7 +68,7 @@
       left: 50%;
       transform: translateX(-50%);
       z-index: 999;
-      padding: 14px 24px;
+      padding: 14px 26px;
       font-size: 16px;
       border-radius: 30px;
       border: none;
@@ -90,7 +93,7 @@
 
   <a-marker preset="hiro">
 
-    <!-- 🌞 ライト（20%減） -->
+    <!-- 🌞 ライト（控えめ） -->
     <a-light type="ambient" intensity="1.4"></a-light>
 
     <a-light
@@ -102,16 +105,16 @@
     <!-- ✨ ツヤ用ポイントライト -->
     <a-light
       type="point"
-      position="0 0.5 0.5"
-      intensity="2.2">
+      position="0 0.4 0.4"
+      intensity="2.0">
     </a-light>
 
-    <!-- 🖼 frame（2人・全端末対応サイズ） -->
+    <!-- 🖼 frame（半分サイズ） -->
     <a-entity
       id="frame"
-      gltf-model="url(frame.glb?v=3)"
-      position="0 0 -0.48"
-      scale="2.5 2.5 2.5"
+      gltf-model="url(frame.glb?v=4)"
+      position="0 0 -0.55"
+      scale="1.3 1.3 1.3"
       heart-emitter>
     </a-entity>
 
@@ -120,7 +123,7 @@
   <a-entity camera></a-entity>
 </a-scene>
 
-<!-- 📸 スクリーンショット処理 -->
+<!-- 📸 スクリーンショット -->
 <script>
 document.getElementById('shot').addEventListener('click', () => {
   const scene = document.querySelector('a-scene');
