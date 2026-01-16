@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>Heart AR Frame</title>
+  <title>Valentine AR Frame</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
@@ -11,67 +11,54 @@
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
   <script>
-    /* ===============================
-       frame内からheartを出す（確定版）
-    =============================== */
-    AFRAME.registerComponent('frame-heart-emitter', {
+    // 💖 frame内ランダム位置からheart生成
+    AFRAME.registerComponent('heart-emitter', {
       init: function () {
-        const frameEl = this.el;
-
-        frameEl.addEventListener('model-loaded', () => {
-          const mesh = frameEl.getObject3D('mesh');
-          if (!mesh) return;
-
-          mesh.updateMatrixWorld(true);
-
-          const box = new THREE.Box3().setFromObject(mesh);
-
-          // 初期5個
-          for (let i = 0; i < 5; i++) {
-            this.spawnHeart(box);
-          }
-
-          // 定期生成
-          setInterval(() => {
-            this.spawnHeart(box);
-          }, 1000);
-        });
+        this.spawn();
+        setInterval(() => this.spawn(), 800);
       },
-
-      spawnHeart: function (box) {
-        const x = THREE.MathUtils.lerp(box.min.x + 0.05, box.max.x - 0.05, Math.random());
-        const y = THREE.MathUtils.lerp(box.min.y + 0.05, box.max.y - 0.05, Math.random());
-        const z = box.max.z + 0.02; // frameの"手前"
-
+      spawn: function () {
         const heart = document.createElement('a-entity');
-        heart.setAttribute('gltf-model', '#heartModel');
+
+        // frameローカル基準（額縁の中）
+        const x = (Math.random() - 0.5) * 0.6;
+        const y = Math.random() * 0.4 + 0.2;
+        const z = 0.05; // frameより手前
+
         heart.setAttribute('position', `${x} ${y} ${z}`);
         heart.setAttribute('scale', '0.15 0.15 0.15');
-        heart.setAttribute('floating-heart', '');
 
-        /* 💡 ツヤ専用ライト（強制的に効かせる） */
-        const glossLight = document.createElement('a-light');
-        glossLight.setAttribute('type', 'point');
-        glossLight.setAttribute('intensity', '0.9');
-        glossLight.setAttribute('distance', '2');
-        glossLight.setAttribute('decay', '1');
-        glossLight.setAttribute('position', '0 0 0.15');
+        // ❤️ heartモデル
+        heart.setAttribute('gltf-model', 'url(heart.glb)');
 
-        heart.appendChild(glossLight);
+        // ✨ 強制ツヤマテリアル
+        heart.setAttribute('material', {
+          metalness: 0.85,
+          roughness: 0.15,
+          color: '#ff4f8b'
+        });
 
-        /* ★ 最重要：frameの子にする */
+        // ✨ キラッと回転＆上昇
+        heart.setAttribute('animation__float', {
+          property: 'position',
+          to: `${x} ${y + 0.6} ${z}`,
+          dur: 3000,
+          easing: 'easeOutQuad'
+        });
+
+        heart.setAttribute('animation__spin', {
+          property: 'rotation',
+          to: '0 360 0',
+          dur: 2000,
+          loop: true
+        });
+
         this.el.appendChild(heart);
-      }
-    });
 
-    /* ===============================
-       heart浮遊
-    =============================== */
-    AFRAME.registerComponent('floating-heart', {
-      tick: function (time, delta) {
-        const obj = this.el.object3D;
-        obj.position.y += delta * 0.0003;
-        obj.rotation.y += delta * 0.0006;
+        // 消去
+        setTimeout(() => {
+          heart.parentNode && heart.parentNode.removeChild(heart);
+        }, 3500);
       }
     });
   </script>
@@ -86,22 +73,33 @@
   renderer="colorManagement: true; exposure: 1.6;"
 >
 
-  <a-assets>
-    <a-asset-item id="frameModel" src="frame.glb"></a-asset-item>
-    <a-asset-item id="heartModel" src="heart.glb"></a-asset-item>
-  </a-assets>
-
   <a-marker preset="hiro">
 
-    <a-light type="ambient" intensity="1.44"></a-light>
-    <a-light type="directional" position="0 1 1" intensity="0.96"></a-light>
+    <!-- 🌞 環境光（20%減） -->
+    <a-light type="ambient" intensity="1.4"></a-light>
 
+    <!-- 🌞 正面ライト（20%減） -->
+    <a-light
+      type="directional"
+      position="0 1 1"
+      intensity="1.0">
+    </a-light>
+
+    <!-- ✨ ツヤ用ポイントライト -->
+    <a-light
+      type="point"
+      position="0 0.5 0.5"
+      intensity="2.2"
+      color="#ffffff">
+    </a-light>
+
+    <!-- 🖼 額縁 -->
     <a-entity
       id="frame"
-      gltf-model="#frameModel"
+      gltf-model="url(frame.glb)"
       position="0 0 -0.5"
       scale="3.2 3.2 3.2"
-      frame-heart-emitter>
+      heart-emitter>
     </a-entity>
 
   </a-marker>
