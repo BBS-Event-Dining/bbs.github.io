@@ -1,36 +1,46 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <title>Valentine AR</title>
+<meta charset="utf-8">
+<title>Valentine AR</title>
 
-  <!-- A-Frame -->
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<!-- A-Frame -->
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
-  <!-- AR.js -->
-  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+<!-- AR.js -->
+<script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-    }
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+  }
 
-    /* 撮影ボタン */
-    #captureBtn {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      border: none;
-      font-size: 28px;
-      background: rgba(255,255,255,0.9);
-      z-index: 10;
-    }
-  </style>
+  /* 撮影ボタンのみ表示 */
+  #captureBtn {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: none;
+    font-size: 28px;
+    background: rgba(255,255,255,0.9);
+    z-index: 10;
+  }
+
+  /* A-Frame / VR / AR UI 完全削除 */
+  .a-enter-vr,
+  .a-enter-vr-button,
+  .a-enter-ar,
+  .a-enter-ar-button,
+  .a-orientation-modal,
+  .a-fullscreen-button {
+    display: none !important;
+  }
+</style>
 </head>
 
 <body>
@@ -41,10 +51,9 @@
   embedded
   vr-mode-ui="enabled: false"
   device-orientation-permission-ui="enabled: false"
-  renderer="logarithmicDepthBuffer: true;"
-  arjs="sourceType: webcam;
-        debugUIEnabled: false;
-        trackingMethod: best;"
+  renderer="preserveDrawingBuffer: true; logarithmicDepthBuffer: true;"
+  screenshot="width: 1080; height: 1920;"
+  arjs="sourceType: webcam; debugUIEnabled: false;"
 >
 
   <!-- Hiro Marker -->
@@ -55,7 +64,6 @@
       id="arModel"
       gltf-model="box_toAR.glb"
       position="0 0.2 0"
-      rotation="0 0 0"
       scale="0.6 0.6 0.6"
       visible="false"
       material="transparent: true; opacity: 1;"
@@ -74,18 +82,20 @@
 </a-scene>
 
 <script>
-  // VRボタン完全削除（念押し）
+  // 念押し：VRボタンDOM削除
   document.addEventListener("DOMContentLoaded", () => {
     const vrBtn = document.querySelector(".a-enter-vr-button");
-    if (vrBtn) vrBtn.style.display = "none";
+    if (vrBtn) vrBtn.remove();
   });
 
   const marker = document.querySelector("#hiroMarker");
   const model  = document.querySelector("#arModel");
+  const captureBtn = document.querySelector("#captureBtn");
 
   let hideTimer = null;
+  let capturing = false;
 
-  // marker 認識
+  // marker 検出
   marker.addEventListener("markerFound", () => {
     model.setAttribute("visible", true);
     model.setAttribute("material", "opacity", 1);
@@ -96,8 +106,10 @@
     }
   });
 
-  // marker ロスト → 2.5秒保持 → フェードアウト
+  // marker ロスト → 表示保持 → フェードアウト
   marker.addEventListener("markerLost", () => {
+    if (capturing) return;
+
     hideTimer = setTimeout(() => {
       model.emit("fadeOut");
 
@@ -107,23 +119,31 @@
     }, 2500);
   });
 
-  // 撮影処理
-  document.getElementById("captureBtn").addEventListener("click", () => {
-    const video = document.querySelector("video");
-    if (!video) return;
+  // 撮影（A-Frame Screenshot方式）
+  captureBtn.addEventListener("click", () => {
+    const sceneEl = document.querySelector("a-scene");
+    if (!sceneEl.components.screenshot) return;
 
-    const canvas = document.createElement("canvas");
-    canvas.width  = video.videoWidth;
-    canvas.height = video.videoHeight;
+    capturing = true;
 
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // 最終合成をキャプチャ
+    sceneEl.components.screenshot.capture("perspective");
 
-    const img = canvas.toDataURL("image/png");
-    const link = document.createElement("a");
-    link.href = img;
-    link.download = "valentine_ar.png";
-    link.click();
+    setTimeout(() => {
+      const canvas =
+        sceneEl.components.screenshot.getCanvas("perspective");
+
+      if (!canvas) return;
+
+      const img = canvas.toDataURL("image/png");
+
+      const a = document.createElement("a");
+      a.href = img;
+      a.download = "valentine_ar.png";
+      a.click();
+
+      capturing = false;
+    }, 120);
   });
 </script>
 
