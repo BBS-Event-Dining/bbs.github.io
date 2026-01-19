@@ -2,9 +2,9 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Valentine AR</title>
+<title>AR CHECK</title>
 
 <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
@@ -12,115 +12,28 @@
 <style>
 html, body {
   margin: 0;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  background: black;
-}
-
-#shootBtn {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  border: none;
-  background: white;
-  font-size: 14px;
-  z-index: 10;
-}
-
-#guide {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 8px 14px;
-  background: rgba(0,0,0,0.6);
-  color: white;
-  font-size: 12px;
-  border-radius: 6px;
-  display: none;
-  z-index: 10;
 }
 </style>
 </head>
 
 <body>
 
-<div id="guide">iPhoneの方はスクリーンショットで保存してください</div>
-<button id="shootBtn">撮影</button>
-
 <a-scene
-  embedded
   vr-mode-ui="enabled: false"
-  device-orientation-permission-ui="enabled: false"
-  screenshot="enabled: false"
-  renderer="alpha: true; antialias: true"
+  renderer="antialias: true; alpha: true"
   arjs="sourceType: webcam; debugUIEnabled: false;"
 >
 
-  <a-marker
-    type="hiro"
-    id="marker"
-    smooth="true"
-    smoothCount="10"
-    smoothTolerance="0.01"
-    smoothThreshold="5"
-  >
-    <a-entity
-      id="arObject"
-      gltf-model="box_toAR.glb"
-      position="0 0.2 0"
-      scale="0.4 0.4 0.4"
-      visible="false"
-    ></a-entity>
+  <a-marker type="hiro">
+    <a-box position="0 0.5 0" color="red"></a-box>
   </a-marker>
 
   <a-entity camera></a-entity>
+
 </a-scene>
-
-<script>
-const marker = document.querySelector('#marker');
-const obj = document.querySelector('#arObject');
-const scene = document.querySelector('a-scene');
-const guide = document.getElementById('guide');
-
-let hideTimer;
-
-// OS判定
-const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-// 表示保持 + フェードアウト
-marker.addEventListener('markerFound', () => {
-  obj.setAttribute('visible', true);
-  obj.setAttribute('material', 'opacity: 1');
-
-  clearTimeout(hideTimer);
-
-  hideTimer = setTimeout(() => {
-    obj.setAttribute('animation__fade', {
-      property: 'material.opacity',
-      to: 0,
-      dur: 1000,
-      easing: 'easeOutQuad'
-    });
-    setTimeout(() => obj.setAttribute('visible', false), 1000);
-  }, 2500);
-});
-
-// 撮影
-document.getElementById('shootBtn').addEventListener('click', () => {
-  if (isIOS) {
-    // iOSはガイド表示のみ
-    guide.style.display = 'block';
-    setTimeout(() => guide.style.display = 'none', 3000);
-  } else {
-    // AndroidはA-Frame公式スクショ
-    scene.components.screenshot.capture('perspective');
-  }
-});
-</script>
 
 </body>
 </html>
