@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>Valentine AR - Hiro Marker</title>
+
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+
+  <!-- AR.js -->
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    /* ==== UI（前回 index 流用） ==== */
+    #ui {
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      z-index: 10;
+    }
+
+    button {
+      padding: 12px 18px;
+      font-size: 14px;
+      border-radius: 999px;
+      border: none;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+    }
+
+    #brightness {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ==== UI ==== -->
+  <div id="ui">
+    <button id="captureBtn">撮影</button>
+  </div>
+
+  <div id="brightness">
+    <input
+      id="brightnessRange"
+      type="range"
+      min="0.5"
+      max="1.5"
+      step="0.01"
+      value="1.0"
+    />
+  </div>
+
+  <!-- ==== AR Scene ==== -->
+  <a-scene
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false;"
+    vr-mode-ui="enabled: false"
+  >
+
+    <!-- Hiro Marker -->
+    <a-marker preset="hiro">
+
+      <!-- 配置のみ：アニメーションなし -->
+      <a-gltf-model
+        src="./box_toAR.glb"
+        position="0 0 0"
+        rotation="0 0 0"
+        scale="1 1 1"
+      ></a-gltf-model>
+
+    </a-marker>
+
+    <!-- カメラ -->
+    <a-entity camera></a-entity>
+
+  </a-scene>
+
+  <!-- ==== Script ==== -->
+  <script>
+    /* =========================
+       撮影ボタン（前回流用）
+    ========================= */
+    const captureBtn = document.getElementById("captureBtn");
+
+    captureBtn.addEventListener("click", () => {
+      const scene = document.querySelector("a-scene");
+      const canvas = scene.renderer.domElement;
+
+      const link = document.createElement("a");
+      link.download = "valentine-ar.png";
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    });
+
+    /* =========================
+       明るさ調整（前回流用）
+    ========================= */
+    const brightnessRange = document.getElementById("brightnessRange");
+
+    brightnessRange.addEventListener("input", (e) => {
+      document.body.style.filter = `brightness(${e.target.value})`;
+    });
+  </script>
+
+</body>
+</html>
