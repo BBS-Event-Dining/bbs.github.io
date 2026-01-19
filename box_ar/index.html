@@ -17,9 +17,10 @@
       margin: 0;
       overflow: hidden;
       font-family: sans-serif;
+      background: #000;
     }
 
-    /* ==== UI（前回 index 流用） ==== */
+    /* ==== UI ==== */
     #ui {
       position: fixed;
       bottom: 20px;
@@ -27,12 +28,11 @@
       right: 0;
       display: flex;
       justify-content: center;
-      gap: 16px;
       z-index: 10;
     }
 
     button {
-      padding: 12px 18px;
+      padding: 12px 20px;
       font-size: 14px;
       border-radius: 999px;
       border: none;
@@ -42,8 +42,8 @@
 
     #brightness {
       position: fixed;
-      top: 20px;
-      right: 20px;
+      top: 16px;
+      right: 16px;
       z-index: 10;
     }
   </style>
@@ -70,24 +70,29 @@
   <!-- ==== AR Scene ==== -->
   <a-scene
     embedded
-    arjs="sourceType: webcam; debugUIEnabled: false;"
     vr-mode-ui="enabled: false"
+    stats="false"
+    inspector="false"
+    renderer="preserveDrawingBuffer: true; logarithmicDepthBuffer: true;"
+    arjs="sourceType: webcam;
+          debugUIEnabled: false;
+          detectionMode: mono;"
   >
 
     <!-- Hiro Marker -->
     <a-marker preset="hiro">
 
-      <!-- 配置のみ：アニメーションなし -->
-     <a-marker preset="hiro">
-  <a-gltf-model
-    src="./box_toAR.glb"
-    position="0 0.08 0"
-    rotation="0 0 0"
-    scale="0.35 0.35 0.35"
-  ></a-gltf-model>
-</a-marker>
+      <!-- box_toAR.glb（サイズ調整済） -->
+      <a-gltf-model
+        src="./box_toAR.glb"
+        position="0 0.08 0"
+        rotation="0 0 0"
+        scale="0.35 0.35 0.35"
+      ></a-gltf-model>
 
-    <!-- カメラ -->
+    </a-marker>
+
+    <!-- Camera -->
     <a-entity camera></a-entity>
 
   </a-scene>
@@ -95,13 +100,17 @@
   <!-- ==== Script ==== -->
   <script>
     /* =========================
-       撮影ボタン（前回流用）
+       撮影（AR映像＋オブジェクト）
     ========================= */
     const captureBtn = document.getElementById("captureBtn");
 
     captureBtn.addEventListener("click", () => {
       const scene = document.querySelector("a-scene");
-      const canvas = scene.renderer.domElement;
+      const renderer = scene.renderer;
+      const canvas = renderer.domElement;
+
+      // 念のため再描画
+      renderer.render(scene.object3D, scene.camera);
 
       const link = document.createElement("a");
       link.download = "valentine-ar.png";
@@ -110,7 +119,7 @@
     });
 
     /* =========================
-       明るさ調整（前回流用）
+       明るさ調整
     ========================= */
     const brightnessRange = document.getElementById("brightnessRange");
 
