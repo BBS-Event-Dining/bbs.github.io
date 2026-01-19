@@ -29,22 +29,37 @@ html, body {
   font-size: 14px;
   z-index: 10;
 }
+
+#guide {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  font-size: 12px;
+  border-radius: 6px;
+  display: none;
+  z-index: 10;
+}
 </style>
 </head>
 
 <body>
 
+<div id="guide">iPhoneの方はスクリーンショットで保存してください</div>
 <button id="shootBtn">撮影</button>
 
 <a-scene
   embedded
   vr-mode-ui="enabled: false"
   device-orientation-permission-ui="enabled: false"
-  renderer="alpha: true; antialias: true; preserveDrawingBuffer: true"
-  arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;"
+  screenshot="enabled: false"
+  renderer="alpha: true; antialias: true"
+  arjs="sourceType: webcam; debugUIEnabled: false;"
 >
 
-  <!-- Marker -->
   <a-marker
     type="hiro"
     id="marker"
@@ -53,7 +68,6 @@ html, body {
     smoothTolerance="0.01"
     smoothThreshold="5"
   >
-    <!-- 表示保持＋フェードアウト -->
     <a-entity
       id="arObject"
       gltf-model="box_toAR.glb"
@@ -70,10 +84,14 @@ html, body {
 const marker = document.querySelector('#marker');
 const obj = document.querySelector('#arObject');
 const scene = document.querySelector('a-scene');
+const guide = document.getElementById('guide');
 
-let hideTimer = null;
+let hideTimer;
 
-// marker検出
+// OS判定
+const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+// 表示保持 + フェードアウト
 marker.addEventListener('markerFound', () => {
   obj.setAttribute('visible', true);
   obj.setAttribute('material', 'opacity: 1');
@@ -87,27 +105,20 @@ marker.addEventListener('markerFound', () => {
       dur: 1000,
       easing: 'easeOutQuad'
     });
-
-    setTimeout(() => {
-      obj.setAttribute('visible', false);
-    }, 1000);
-
-  }, 2500); // 表示保持 2.5秒
+    setTimeout(() => obj.setAttribute('visible', false), 1000);
+  }, 2500);
 });
 
-// 撮影処理
+// 撮影
 document.getElementById('shootBtn').addEventListener('click', () => {
-  const renderer = scene.renderer;
-  const canvas = renderer.domElement;
-
-  const dataURL = canvas.toDataURL('image/png');
-
-  const a = document.createElement('a');
-  a.href = dataURL;
-  a.download = 'valentine_ar.png';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  if (isIOS) {
+    // iOSはガイド表示のみ
+    guide.style.display = 'block';
+    setTimeout(() => guide.style.display = 'none', 3000);
+  } else {
+    // AndroidはA-Frame公式スクショ
+    scene.components.screenshot.capture('perspective');
+  }
 });
 </script>
 
