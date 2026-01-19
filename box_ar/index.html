@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>Valentine AR - Hiro Marker</title>
+  <title>Valentine AR - Capture Perfect</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
@@ -20,12 +20,25 @@
       font-family: sans-serif;
     }
 
+    /* 起動待ち */
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+    }
+
+    /* UI */
     #ui {
       position: fixed;
       bottom: 20px;
       left: 0;
       right: 0;
-      display: flex;
+      display: none;
       justify-content: center;
       z-index: 10;
     }
@@ -43,6 +56,9 @@
 
 <body>
 
+  <!-- 起動待ち -->
+  <div id="loading">カメラを起動しています…</div>
+
   <!-- UI -->
   <div id="ui">
     <button id="captureBtn">撮影</button>
@@ -54,14 +70,13 @@
     vr-mode-ui="enabled: false"
     stats="false"
     inspector="false"
-    renderer="preserveDrawingBuffer: true;"
+    renderer="preserveDrawingBuffer: true; logarithmicDepthBuffer: true;"
     arjs="sourceType: webcam; debugUIEnabled: false;"
   >
 
-    <!-- Hiro Marker（床から20cm上） -->
+    <!-- Hiro Marker（床から20cm） -->
     <a-marker preset="hiro" position="0 0.2 0">
 
-      <!-- box_toAR.glb（markerから少し浮かせる） -->
       <a-gltf-model
         src="./box_toAR.glb"
         position="0 0.08 0"
@@ -71,25 +86,57 @@
 
     </a-marker>
 
-    <!-- Camera -->
     <a-entity camera></a-entity>
 
   </a-scene>
 
   <!-- Script -->
   <script>
+    const loading = document.getElementById("loading");
+    const ui = document.getElementById("ui");
     const captureBtn = document.getElementById("captureBtn");
+    const scene = document.querySelector("a-scene");
 
+    /* =========================
+       カメラ映像 ready を待つ
+    ========================= */
+    scene.addEventListener("loaded", () => {
+      const checkVideo = setInterval(() => {
+        const video = document.querySelector("video");
+        if (video && video.readyState >= 2) {
+          clearInterval(checkVideo);
+          loading.style.display = "none";
+          ui.style.display = "flex";
+        }
+      }, 100);
+    });
+
+    /* =========================
+       撮影処理（完成形）
+    ========================= */
     captureBtn.addEventListener("click", () => {
-      const scene = document.querySelector("a-scene");
       const renderer = scene.renderer;
 
-      renderer.render(scene.object3D, scene.camera);
+      // UIを消す
+      ui.style.display = "none";
 
-      const link = document.createElement("a");
-      link.download = "valentine-ar.png";
-      link.href = renderer.domElement.toDataURL("image/png");
-      link.click();
+      // 1フレーム待ってから撮影
+      requestAnimationFrame(() => {
+        renderer.render(scene.object3D, scene.camera);
+
+        const canvas = renderer.domElement;
+        const dataUrl = canvas.toDataURL("image/png");
+
+        const link = document.createElement("a");
+        link.download = "valentine-ar.png";
+        link.href = dataUrl;
+        link.click();
+
+        // UIを戻す
+        setTimeout(() => {
+          ui.style.display = "flex";
+        }, 300);
+      });
     });
   </script>
 
