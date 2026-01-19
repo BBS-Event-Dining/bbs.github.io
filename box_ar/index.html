@@ -2,143 +2,93 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>Valentine AR - Capture Perfect</title>
+  <title>Valentine AR</title>
 
   <!-- A-Frame -->
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
   <!-- AR.js -->
   <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
 
   <style>
     body {
       margin: 0;
       overflow: hidden;
-      background: #000;
-      font-family: sans-serif;
-    }
-
-    /* 起動待ち */
-    #loading {
-      position: fixed;
-      inset: 0;
-      background: #000;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 20;
-    }
-
-    /* UI */
-    #ui {
-      position: fixed;
-      bottom: 20px;
-      left: 0;
-      right: 0;
-      display: none;
-      justify-content: center;
-      z-index: 10;
-    }
-
-    button {
-      padding: 12px 20px;
-      font-size: 14px;
-      border-radius: 999px;
-      border: none;
-      background: rgba(0,0,0,0.6);
-      color: #fff;
     }
   </style>
 </head>
 
 <body>
-
-  <!-- 起動待ち -->
-  <div id="loading">カメラを起動しています…</div>
-
-  <!-- UI -->
-  <div id="ui">
-    <button id="captureBtn">撮影</button>
-  </div>
-
-  <!-- AR Scene -->
   <a-scene
     embedded
     vr-mode-ui="enabled: false"
-    stats="false"
-    inspector="false"
-    renderer="preserveDrawingBuffer: true; logarithmicDepthBuffer: true;"
-    arjs="sourceType: webcam; debugUIEnabled: false;"
+    arjs="sourceType: webcam;
+          debugUIEnabled: false;
+          trackingMethod: best;"
+    renderer="logarithmicDepthBuffer: true;"
   >
 
-    <!-- Hiro Marker（床から20cm） -->
-    <a-marker preset="hiro" position="0 0.2 0">
+    <!-- marker -->
+    <a-marker
+      id="hiroMarker"
+      type="pattern"
+      preset="hiro"
+    >
 
-      <a-gltf-model
-        src="./box_toAR.glb"
-        position="0 0.08 0"
+      <!-- 3D Object -->
+      <a-entity
+        id="arModel"
+        gltf-model="box_toAR.glb"
+        position="0 0.2 0"
         rotation="0 0 0"
-        scale="0.35 0.35 0.35"
-      ></a-gltf-model>
+        scale="0.6 0.6 0.6"
+        visible="false"
+        material="transparent: true; opacity: 1;"
+        
+        animation__fadeout="
+          property: material.opacity;
+          from: 1;
+          to: 0;
+          dur: 500;
+          startEvents: fadeOut;
+        "
+      ></a-entity>
 
     </a-marker>
 
+    <!-- camera -->
     <a-entity camera></a-entity>
-
   </a-scene>
 
-  <!-- Script -->
   <script>
-    const loading = document.getElementById("loading");
-    const ui = document.getElementById("ui");
-    const captureBtn = document.getElementById("captureBtn");
-    const scene = document.querySelector("a-scene");
+    const marker = document.querySelector('#hiroMarker');
+    const model  = document.querySelector('#arModel');
 
-    /* =========================
-       カメラ映像 ready を待つ
-    ========================= */
-    scene.addEventListener("loaded", () => {
-      const checkVideo = setInterval(() => {
-        const video = document.querySelector("video");
-        if (video && video.readyState >= 2) {
-          clearInterval(checkVideo);
-          loading.style.display = "none";
-          ui.style.display = "flex";
-        }
-      }, 100);
+    let hideTimer = null;
+
+    marker.addEventListener('markerFound', () => {
+      // 表示
+      model.setAttribute('visible', true);
+      model.setAttribute('material', 'opacity', 1);
+
+      // タイマー解除
+      if (hideTimer) {
+        clearTimeout(hideTimer);
+        hideTimer = null;
+      }
     });
 
-    /* =========================
-       撮影処理（完成形）
-    ========================= */
-    captureBtn.addEventListener("click", () => {
-      const renderer = scene.renderer;
+    marker.addEventListener('markerLost', () => {
+      // 2.5秒キープ → フェードアウト
+      hideTimer = setTimeout(() => {
+        model.emit('fadeOut');
 
-      // UIを消す
-      ui.style.display = "none";
-
-      // 1フレーム待ってから撮影
-      requestAnimationFrame(() => {
-        renderer.render(scene.object3D, scene.camera);
-
-        const canvas = renderer.domElement;
-        const dataUrl = canvas.toDataURL("image/png");
-
-        const link = document.createElement("a");
-        link.download = "valentine-ar.png";
-        link.href = dataUrl;
-        link.click();
-
-        // UIを戻す
+        // フェード完了後に非表示
         setTimeout(() => {
-          ui.style.display = "flex";
-        }, 300);
-      });
+          model.setAttribute('visible', false);
+        }, 500);
+      }, 2500);
     });
   </script>
-
 </body>
 </html>
