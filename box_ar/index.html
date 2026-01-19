@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8">
   <title>Valentine AR</title>
 
   <!-- A-Frame -->
@@ -15,80 +15,117 @@
       margin: 0;
       overflow: hidden;
     }
+
+    /* 撮影ボタン */
+    #captureBtn {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: none;
+      font-size: 28px;
+      background: rgba(255,255,255,0.9);
+      z-index: 10;
+    }
   </style>
 </head>
 
 <body>
-  <a-scene
-    embedded
-    vr-mode-ui="enabled: false"
-    arjs="sourceType: webcam;
-          debugUIEnabled: false;
-          trackingMethod: best;"
-    renderer="logarithmicDepthBuffer: true;"
-  >
 
-    <!-- marker -->
-    <a-marker
-      id="hiroMarker"
-      type="pattern"
-      preset="hiro"
-    >
+<button id="captureBtn">📸</button>
 
-      <!-- 3D Object -->
-      <a-entity
-        id="arModel"
-        gltf-model="box_toAR.glb"
-        position="0 0.2 0"
-        rotation="0 0 0"
-        scale="0.6 0.6 0.6"
-        visible="false"
-        material="transparent: true; opacity: 1;"
-        
-        animation__fadeout="
-          property: material.opacity;
-          from: 1;
-          to: 0;
-          dur: 500;
-          startEvents: fadeOut;
-        "
-      ></a-entity>
+<a-scene
+  embedded
+  vr-mode-ui="enabled: false"
+  device-orientation-permission-ui="enabled: false"
+  renderer="logarithmicDepthBuffer: true;"
+  arjs="sourceType: webcam;
+        debugUIEnabled: false;
+        trackingMethod: best;"
+>
 
-    </a-marker>
+  <!-- Hiro Marker -->
+  <a-marker id="hiroMarker" preset="hiro">
 
-    <!-- camera -->
-    <a-entity camera></a-entity>
-  </a-scene>
+    <!-- AR Object -->
+    <a-entity
+      id="arModel"
+      gltf-model="box_toAR.glb"
+      position="0 0.2 0"
+      rotation="0 0 0"
+      scale="0.6 0.6 0.6"
+      visible="false"
+      material="transparent: true; opacity: 1;"
+      animation__fadeout="
+        property: material.opacity;
+        from: 1;
+        to: 0;
+        dur: 500;
+        startEvents: fadeOut;
+      "
+    ></a-entity>
 
-  <script>
-    const marker = document.querySelector('#hiroMarker');
-    const model  = document.querySelector('#arModel');
+  </a-marker>
 
-    let hideTimer = null;
+  <a-entity camera></a-entity>
+</a-scene>
 
-    marker.addEventListener('markerFound', () => {
-      // 表示
-      model.setAttribute('visible', true);
-      model.setAttribute('material', 'opacity', 1);
+<script>
+  // VRボタン完全削除（念押し）
+  document.addEventListener("DOMContentLoaded", () => {
+    const vrBtn = document.querySelector(".a-enter-vr-button");
+    if (vrBtn) vrBtn.style.display = "none";
+  });
 
-      // タイマー解除
-      if (hideTimer) {
-        clearTimeout(hideTimer);
-        hideTimer = null;
-      }
-    });
+  const marker = document.querySelector("#hiroMarker");
+  const model  = document.querySelector("#arModel");
 
-    marker.addEventListener('markerLost', () => {
-      // 2.5秒キープ → フェードアウト
-      hideTimer = setTimeout(() => {
-        model.emit('fadeOut');
+  let hideTimer = null;
 
-        // フェード完了後に非表示
-        setTimeout(() => {
-          model.setAttribute('visible', false);
-        }, 500);
-      }, 2500);
-    });
-  </script>
+  // marker 認識
+  marker.addEventListener("markerFound", () => {
+    model.setAttribute("visible", true);
+    model.setAttribute("material", "opacity", 1);
+
+    if (hideTimer) {
+      clearTimeout(hideTimer);
+      hideTimer = null;
+    }
+  });
+
+  // marker ロスト → 2.5秒保持 → フェードアウト
+  marker.addEventListener("markerLost", () => {
+    hideTimer = setTimeout(() => {
+      model.emit("fadeOut");
+
+      setTimeout(() => {
+        model.setAttribute("visible", false);
+      }, 500);
+    }, 2500);
+  });
+
+  // 撮影処理
+  document.getElementById("captureBtn").addEventListener("click", () => {
+    const video = document.querySelector("video");
+    if (!video) return;
+
+    const canvas = document.createElement("canvas");
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const img = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = img;
+    link.download = "valentine_ar.png";
+    link.click();
+  });
+</script>
+
 </body>
 </html>
