@@ -36,7 +36,14 @@
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
     <a-entity mindar-image-target="targetIndex: 0">
-      <a-image id="coupon-entity" src="#couponImg" position="0 0.5 0" rotation="0 0 0" scale="1 1 1"></a-image>
+      
+      <a-image 
+        id="coupon-entity" 
+        src="#couponImg" 
+        position="0 0.4 0" 
+        rotation="0 0 0" 
+        scale="1 1 1">
+      </a-image>
       
       <a-entity id="heart-container"></a-entity>
     </a-entity>
@@ -49,26 +56,25 @@
     const sceneEl = document.querySelector('a-scene');
     let arReady = false;
 
+    /* ハート生成（垂直に立ったクーポンから出す） */
     function spawnHeart() {
-      // マーカーが認識されていない時は実行しない
       const targetEntity = document.querySelector('[mindar-image-target]');
       if (!targetEntity.object3D.visible) return;
 
       const heart = document.createElement('a-entity');
       
-      // ハートの初期位置（垂直に立ったクーポンの足元付近から出す）
-      const x = (Math.random() - 0.5) * 0.3;
+      // クーポンの根元（地面に近いところ）から発生
+      const x = (Math.random() - 0.5) * 0.4;
       const z = (Math.random() - 0.5) * 0.1;
-      const s = 0.2;
 
       heart.setAttribute('gltf-model', 'url(heart2.glb)');
-      heart.setAttribute('position', `${x} 0.2 ${z}`); // クーポンの根元付近
-      heart.setAttribute('scale', `${s} ${s} ${s}`);
+      heart.setAttribute('position', `${x} 0.1 ${z}`);
+      heart.setAttribute('scale', '0.2 0.2 0.2');
       
-      // クーポンに沿って上に昇っていくアニメーション
+      // 垂直に昇っていくアニメーション
       heart.setAttribute('animation', {
         property: 'position',
-        to: `${x * 1.5} 1.5 ${z}`, 
+        to: `${x * 1.2} 1.2 ${z}`, 
         dur: 1500,
         easing: 'easeOutQuad'
       });
