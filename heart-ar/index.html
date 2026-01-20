@@ -31,7 +31,7 @@ html, body {
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
-  padding: 14px 22px;
+  padding: 14px 24px;
   font-size: 16px;
   border-radius: 30px;
   border: none;
@@ -67,7 +67,7 @@ html, body {
 <script>
 const container = document.querySelector('#heart-container');
 const shootBtn = document.getElementById('shoot');
-const scene = document.querySelector('a-scene');
+const sceneEl = document.querySelector('a-scene');
 
 let arReady = false;
 
@@ -98,21 +98,21 @@ function spawnHeart() {
   container.appendChild(heart);
 }
 
-/* 定期生成 */
+/* ハートを定期生成 */
 setInterval(spawnHeart, 350);
 
-/* ===== MindAR 準備完了 ===== */
-scene.addEventListener('arReady', () => {
+/* ===== MindAR 起動完了 ===== */
+sceneEl.addEventListener('arReady', () => {
   arReady = true;
   shootBtn.disabled = false;
 });
 
-/* ===== 撮影処理 ===== */
+/* ===== 撮影処理（完成版） ===== */
 shootBtn.addEventListener('click', () => {
   if (!arReady) return;
 
   const video = document.querySelector('video');
-  const glCanvas = document.querySelector('canvas');
+  const glCanvas = sceneEl.canvas; // ← 超重要
 
   if (!video || !glCanvas) {
     alert('カメラが準備できていません');
@@ -127,11 +127,13 @@ shootBtn.addEventListener('click', () => {
   canvas.height = h;
   const ctx = canvas.getContext('2d');
 
-  // カメラ映像
+  // ① カメラ映像
   ctx.drawImage(video, 0, 0, w, h);
-  // 3D描画
+
+  // ② ARオブジェクト（heart）
   ctx.drawImage(glCanvas, 0, 0, w, h);
 
+  // 保存
   const a = document.createElement('a');
   a.href = canvas.toDataURL('image/png');
   a.download = 'chirashi_ar.png';
