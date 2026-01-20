@@ -2,188 +2,113 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>Heart AR Fountain - Photo Capture</title>
+  <title>Chirashi AR</title>
 
   <meta name="viewport"
     content="width=device-width, height=device-height,
-             initial-scale=1.0,
-             maximum-scale=1.0,
-             user-scalable=no">
+    initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
 
-  <!-- MindAR Image -->
+  <!-- MindAR -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    html, body {
+    body {
       margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
       overflow: hidden;
-      background: #000;
+      background: black;
     }
 
-    a-scene {
-      width: 100%;
-      height: 100%;
-    }
-
-    /* 撮影ボタン */
-    #capture-btn {
+    #shoot {
       position: fixed;
-      bottom: 24px;
+      bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.9);
-      border: 4px solid #fff;
-      box-shadow: 0 0 15px rgba(0,0,0,0.4);
-      z-index: 9999;
-    }
-
-    #capture-btn:active {
-      transform: translateX(-50%) scale(0.95);
-    }
-
-    /* 横向き警告 */
-    #rotate-warning {
-      position: fixed;
-      inset: 0;
-      background: #000;
-      color: #fff;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      font-size: 18px;
-      z-index: 10000;
+      z-index: 999;
+      padding: 14px 20px;
+      font-size: 16px;
+      border-radius: 30px;
+      border: none;
+      background: #ff4d6d;
+      color: white;
     }
   </style>
 </head>
 
 <body>
 
-  <div id="rotate-warning">
-    スマートフォンを<br>縦向きにしてください
-  </div>
+<button id="shoot">撮影</button>
 
-  <!-- 撮影ボタン -->
-  <button id="capture-btn"></button>
+<a-scene
+  mindar-image="imageTargetSrc: chirashi.mind; uiScanning: yes;"
+  embedded
+  color-space="sRGB"
+  renderer="colorManagement: true; physicallyCorrectLights"
+  vr-mode-ui="enabled: false"
+  device-orientation-permission-ui="enabled: false">
 
-  <a-scene
-    id="scene"
-    embedded
-    mindar-image="imageTargetSrc: chirashi.mind; autoStart: true;"
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false"
-    renderer="preserveDrawingBuffer: true;"
-  >
+  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <!-- チラシマーカー -->
-    <a-entity id="marker" mindar-image-target="targetIndex: 0">
+  <a-entity mindar-image-target="targetIndex: 0">
+    <a-entity id="heart-container"></a-entity>
+  </a-entity>
 
-      <!-- ライト -->
-      <a-light type="ambient" intensity="1.0"></a-light>
-      <a-light type="directional" position="0 1 1" intensity="0.6"></a-light>
+</a-scene>
 
-      <!-- ハート -->
-      <a-entity id="heart-container"></a-entity>
-    </a-entity>
+<script>
+  const container = document.querySelector('#heart-container');
 
-    <a-camera
-      position="0 0 0"
-      look-controls="enabled: false"
-    ></a-camera>
+  function spawnHeart() {
+    const heart = document.createElement('a-entity');
 
-  </a-scene>
+    const x0 = (Math.random() - 0.5) * 0.6;
+    const y0 = 0;
+    const z0 = (Math.random() - 0.5) * 0.6;
+    const scaleVal = 0.25;
 
-  <script>
-    /* ===== 縦向きチェック ===== */
-    const warning = document.getElementById('rotate-warning');
-    function checkOrientation() {
-      warning.style.display =
-        window.innerWidth > window.innerHeight ? 'flex' : 'none';
-    }
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
-    checkOrientation();
+    heart.setAttribute('gltf-model', 'url(heart2.glb)');
+    heart.setAttribute('position', `${x0} ${y0} ${z0}`);
+    heart.setAttribute('scale', `${scaleVal} ${scaleVal} ${scaleVal}`);
 
-    /* ===== AR演出 ===== */
-    const marker = document.querySelector('#marker');
-    const container = document.querySelector('#heart-container');
-    let spawnTimer = null;
-
-    function spawnHeart() {
-      const heart = document.createElement('a-entity');
-
-      const x0 = (Math.random() - 0.5) * 0.4;
-      const y0 = Math.random() * 0.25;
-      const z0 = (Math.random() - 0.5) * 0.4;
-
-      const scale = 0.22 + Math.random() * 0.08;
-
-      heart.setAttribute('gltf-model', 'url(heart2.glb)');
-      heart.setAttribute('position', `${x0} ${y0} ${z0}`);
-      heart.setAttribute('scale', `${scale} ${scale} ${scale}`);
-
-      const x1 = x0 + (Math.random() - 0.5) * 0.3;
-      const y1 = y0 + 0.7 + Math.random() * 0.4;
-      const z1 = z0 + (Math.random() - 0.5) * 0.3;
-
-      heart.setAttribute('animation__move', `
-        property: position;
-        to: ${x1} ${y1} ${z1};
-        dur: ${1200 + Math.random() * 600};
-        easing: easeOutQuad
-      `);
-
-      heart.setAttribute('animation__scale', `
-        property: scale;
-        to: ${scale * 1.5} ${scale * 1.5} ${scale * 1.5};
-        dur: 600;
-        easing: easeOutBack
-      `);
-
-      heart.addEventListener('animationcomplete__move', () => {
-        heart.remove();
-      });
-
-      container.appendChild(heart);
-    }
-
-    function startSpawn() {
-      if (spawnTimer) return;
-      spawnTimer = setInterval(spawnHeart, 260);
-    }
-
-    function stopSpawn() {
-      clearInterval(spawnTimer);
-      spawnTimer = null;
-      container.innerHTML = '';
-    }
-
-    marker.addEventListener('targetFound', startSpawn);
-    marker.addEventListener('targetLost', stopSpawn);
-
-    /* ===== 撮影処理 ===== */
-    const captureBtn = document.getElementById('capture-btn');
-    const sceneEl = document.querySelector('#scene');
-
-    captureBtn.addEventListener('click', () => {
-      const canvas = sceneEl.renderer.domElement;
-      const dataURL = canvas.toDataURL('image/png');
-
-      const link = document.createElement('a');
-      link.href = dataURL;
-      link.download = 'AR_photo.png';
-      link.click();
+    heart.setAttribute('animation__move', {
+      property: 'position',
+      to: `${x0} ${y0 + 0.8} ${z0}`,
+      dur: 1400,
+      easing: 'easeOutQuad'
     });
-  </script>
+
+    heart.addEventListener('animationcomplete__move', () => {
+      heart.remove();
+    });
+
+    container.appendChild(heart);
+  }
+
+  setInterval(spawnHeart, 350);
+
+  // ===== 撮影処理（重要） =====
+  document.getElementById('shoot').onclick = () => {
+    const video = document.querySelector('video');
+    const glCanvas = document.querySelector('canvas');
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+
+    ctx.drawImage(video, 0, 0, w, h);
+    ctx.drawImage(glCanvas, 0, 0, w, h);
+
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = 'chirashi_ar.png';
+    a.click();
+  };
+</script>
 
 </body>
 </html>
