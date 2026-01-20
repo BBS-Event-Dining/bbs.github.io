@@ -1,76 +1,84 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8">
-    <title>Heart AR Fountain Bigger - Hiro Marker</title>
-    <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <title>Heart AR Fountain - Chirashi Marker</title>
 
-  <body style="margin:0; overflow:hidden;">
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false">
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
 
-      <!-- Hiroマーカー -->
-      <a-marker preset="hiro">
+  <!-- MindAR -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+</head>
 
-        <a-entity id="heart-container"></a-entity>
+<body style="margin:0; overflow:hidden;">
+  <a-scene
+    embedded
+    mindar-image="imageTargetSrc: chirashi.mind; autoStart: true;"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+  >
 
-        <script>
-          const container = document.querySelector('#heart-container');
+    <!-- マーカーに追従するアンカー -->
+    <a-entity mindar-image-target="targetIndex: 0">
 
-          function spawnHeart() {
-            const heart = document.createElement('a-entity');
+      <a-entity id="heart-container"></a-entity>
 
-            // 初期位置をマーカー中心付近でバラけさせる
-            const x0 = (Math.random() - 0.5) * 0.6;
-            const y0 = (Math.random() - 0.2) * 0.2;
-            const z0 = (Math.random() - 0.5) * 0.6;
+    </a-entity>
 
-            // ランダムスケール（大きめ 0.2〜0.3）
-            const scaleVal = 0.2 + Math.random() * 0.1;
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  </a-scene>
 
-            heart.setAttribute('gltf-model', 'url(heart2.glb)');
-            heart.setAttribute('position', `${x0} ${y0} ${z0}`);
-            heart.setAttribute('scale', `${scaleVal} ${scaleVal} ${scaleVal}`);
+  <script>
+    const container = document.querySelector('#heart-container');
 
-            // アニメーション：飛び出す方向もランダム
-            const x1 = x0 + (Math.random() - 0.5) * 0.8;
-            const y1 = y0 + 0.5 + Math.random() * 0.5;
-            const z1 = z0 + (Math.random() - 0.5) * 0.8;
+    function spawnHeart() {
+      const heart = document.createElement('a-entity');
 
-            heart.setAttribute('animation__move', `
-              property: position;
-              to: ${x1} ${y1} ${z1};
-              dur: ${1200 + Math.random() * 800};
-              easing: easeOutQuad
-            `);
+      const x0 = (Math.random() - 0.5) * 0.6;
+      const y0 = Math.random() * 0.2;
+      const z0 = (Math.random() - 0.5) * 0.6;
 
-            heart.setAttribute('animation__scale', `
-              property: scale;
-              to: ${scaleVal*1.5} ${scaleVal*1.5} ${scaleVal*1.5};
-              dur: ${600 + Math.random()*400};
-              easing: easeOutBack
-            `);
+      const scaleVal = 0.2 + Math.random() * 0.1;
 
-            heart.addEventListener('animationcomplete__move', () => {
-              heart.parentNode.removeChild(heart);
-            });
+      heart.setAttribute('gltf-model', 'url(heart2.glb)');
+      heart.setAttribute('position', `${x0} ${y0} ${z0}`);
+      heart.setAttribute('scale', `${scaleVal} ${scaleVal} ${scaleVal}`);
 
-            container.appendChild(heart);
-          }
+      const x1 = x0 + (Math.random() - 0.5) * 0.8;
+      const y1 = y0 + 0.6 + Math.random() * 0.6;
+      const z1 = z0 + (Math.random() - 0.5) * 0.8;
 
-          // 生成間隔をランダム化
-          function spawnLoop() {
-            spawnHeart();
-            setTimeout(spawnLoop, 200 + Math.random()*200);
-          }
+      heart.setAttribute('animation__move', `
+        property: position;
+        to: ${x1} ${y1} ${z1};
+        dur: ${1200 + Math.random() * 800};
+        easing: easeOutQuad
+      `);
 
-          spawnLoop();
-        </script>
+      heart.setAttribute('animation__scale', `
+        property: scale;
+        to: ${scaleVal*1.5} ${scaleVal*1.5} ${scaleVal*1.5};
+        dur: ${600 + Math.random()*400};
+        easing: easeOutBack
+      `);
 
-      </a-marker>
+      heart.addEventListener('animationcomplete__move', () => {
+        heart.remove();
+      });
 
-      <a-entity camera></a-entity>
-    </a-scene>
-  </body>
+      container.appendChild(heart);
+    }
+
+    function spawnLoop() {
+      spawnHeart();
+      setTimeout(spawnLoop, 200 + Math.random() * 200);
+    }
+
+    // MindAR 起動後に生成開始
+    document.addEventListener("DOMContentLoaded", () => {
+      spawnLoop();
+    });
+  </script>
+</body>
 </html>
