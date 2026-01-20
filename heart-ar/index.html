@@ -8,23 +8,17 @@
 content="width=device-width, height=device-height,
 initial-scale=1.0, user-scalable=no">
 
-<!-- A-Frame -->
 <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-
-<!-- MindAR Image -->
 <script src="https://cdn.jsdelivr.net/npm/mind-ar/dist/mindar-image-aframe.prod.js"></script>
 
 <style>
 html, body {
   margin: 0;
-  padding: 0;
   width: 100%;
   height: 100%;
   overflow: hidden;
   background: transparent;
 }
-
-/* 撮影ボタン */
 #shoot {
   position: fixed;
   bottom: 20px;
@@ -48,16 +42,12 @@ html, body {
 <a-scene
   embedded
   mindar-image="imageTargetSrc: chirashi.mind; uiScanning: yes;"
-  renderer="alpha: true; colorManagement: true;"
+  renderer="alpha: true; preserveDrawingBuffer: true;"
   vr-mode-ui="enabled: false"
   device-orientation-permission-ui="enabled: false">
 
-  <a-camera
-    position="0 0 0"
-    look-controls="enabled: false">
-  </a-camera>
+  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-  <!-- チラシ認識 -->
   <a-entity mindar-image-target="targetIndex: 0">
     <a-entity id="heart-container"></a-entity>
   </a-entity>
@@ -68,57 +58,41 @@ html, body {
 const container = document.querySelector('#heart-container');
 const shootBtn = document.getElementById('shoot');
 const sceneEl = document.querySelector('a-scene');
-
 let arReady = false;
 
-/* ===== ハート生成 ===== */
+/* ハート生成 */
 function spawnHeart() {
   const heart = document.createElement('a-entity');
-
-  const x0 = (Math.random() - 0.5) * 0.6;
-  const y0 = 0;
-  const z0 = (Math.random() - 0.5) * 0.6;
-  const scale = 0.25;
+  const x = (Math.random() - 0.5) * 0.6;
+  const z = (Math.random() - 0.5) * 0.6;
+  const s = 0.25;
 
   heart.setAttribute('gltf-model', 'url(heart2.glb)');
-  heart.setAttribute('position', `${x0} ${y0} ${z0}`);
-  heart.setAttribute('scale', `${scale} ${scale} ${scale}`);
-
-  heart.setAttribute('animation__move', {
+  heart.setAttribute('position', `${x} 0 ${z}`);
+  heart.setAttribute('scale', `${s} ${s} ${s}`);
+  heart.setAttribute('animation', {
     property: 'position',
-    to: `${x0} ${y0 + 0.8} ${z0}`,
+    to: `${x} 0.8 ${z}`,
     dur: 1400,
     easing: 'easeOutQuad'
   });
-
-  heart.addEventListener('animationcomplete__move', () => {
-    heart.remove();
-  });
-
+  heart.addEventListener('animationcomplete', () => heart.remove());
   container.appendChild(heart);
 }
-
-/* ハートを定期生成 */
 setInterval(spawnHeart, 350);
 
-/* ===== MindAR 起動完了 ===== */
+/* MindAR ready */
 sceneEl.addEventListener('arReady', () => {
   arReady = true;
   shootBtn.disabled = false;
 });
 
-/* ===== 撮影処理（完成版） ===== */
+/* 撮影 */
 shootBtn.addEventListener('click', () => {
   if (!arReady) return;
 
   const video = document.querySelector('video');
-  const glCanvas = sceneEl.canvas; // ← 超重要
-
-  if (!video || !glCanvas) {
-    alert('カメラが準備できていません');
-    return;
-  }
-
+  const glCanvas = sceneEl.canvas;
   const w = video.videoWidth;
   const h = video.videoHeight;
 
@@ -127,17 +101,15 @@ shootBtn.addEventListener('click', () => {
   canvas.height = h;
   const ctx = canvas.getContext('2d');
 
-  // ① カメラ映像
   ctx.drawImage(video, 0, 0, w, h);
 
-  // ② ARオブジェクト（heart）
-  ctx.drawImage(glCanvas, 0, 0, w, h);
-
-  // 保存
-  const a = document.createElement('a');
-  a.href = canvas.toDataURL('image/png');
-  a.download = 'chirashi_ar.png';
-  a.click();
+  requestAnimationFrame(() => {
+    ctx.drawImage(glCanvas, 0, 0, w, h);
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = 'chirashi_ar.png';
+    a.click();
+  });
 });
 </script>
 
