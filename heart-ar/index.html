@@ -2,16 +2,23 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>Heart AR Fountain - Chirashi Marker</title>
+  <title>Heart AR Fountain - Chirashi</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
 
-  <!-- MindAR -->
+  <!-- MindAR Image -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+  </style>
 </head>
 
-<body style="margin:0; overflow:hidden;">
+<body>
   <a-scene
     embedded
     mindar-image="imageTargetSrc: chirashi.mind; autoStart: true;"
@@ -19,32 +26,42 @@
     device-orientation-permission-ui="enabled: false"
   >
 
-    <!-- マーカーに追従するアンカー -->
-    <a-entity mindar-image-target="targetIndex: 0">
-
+    <!-- チラシマーカー -->
+    <a-entity
+      id="marker"
+      mindar-image-target="targetIndex: 0"
+    >
       <a-entity id="heart-container"></a-entity>
-
     </a-entity>
 
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <!-- カメラ -->
+    <a-camera
+      position="0 0 0"
+      look-controls="enabled: false"
+    ></a-camera>
   </a-scene>
 
   <script>
+    const marker = document.querySelector('#marker');
     const container = document.querySelector('#heart-container');
+
+    let spawnTimer = null;
 
     function spawnHeart() {
       const heart = document.createElement('a-entity');
 
+      // 初期位置（チラシ面基準）
       const x0 = (Math.random() - 0.5) * 0.6;
       const y0 = Math.random() * 0.2;
       const z0 = (Math.random() - 0.5) * 0.6;
 
-      const scaleVal = 0.2 + Math.random() * 0.1;
+      const scale = 0.2 + Math.random() * 0.1;
 
       heart.setAttribute('gltf-model', 'url(heart2.glb)');
       heart.setAttribute('position', `${x0} ${y0} ${z0}`);
-      heart.setAttribute('scale', `${scaleVal} ${scaleVal} ${scaleVal}`);
+      heart.setAttribute('scale', `${scale} ${scale} ${scale}`);
 
+      // アニメーション先
       const x1 = x0 + (Math.random() - 0.5) * 0.8;
       const y1 = y0 + 0.6 + Math.random() * 0.6;
       const z1 = z0 + (Math.random() - 0.5) * 0.8;
@@ -58,8 +75,8 @@
 
       heart.setAttribute('animation__scale', `
         property: scale;
-        to: ${scaleVal*1.5} ${scaleVal*1.5} ${scaleVal*1.5};
-        dur: ${600 + Math.random()*400};
+        to: ${scale * 1.5} ${scale * 1.5} ${scale * 1.5};
+        dur: ${600 + Math.random() * 400};
         easing: easeOutBack
       `);
 
@@ -70,14 +87,25 @@
       container.appendChild(heart);
     }
 
-    function spawnLoop() {
-      spawnHeart();
-      setTimeout(spawnLoop, 200 + Math.random() * 200);
+    function startSpawn() {
+      if (spawnTimer) return;
+      spawnTimer = setInterval(spawnHeart, 250);
     }
 
-    // MindAR 起動後に生成開始
-    document.addEventListener("DOMContentLoaded", () => {
-      spawnLoop();
+    function stopSpawn() {
+      clearInterval(spawnTimer);
+      spawnTimer = null;
+      container.innerHTML = '';
+    }
+
+    // マーカー検出
+    marker.addEventListener('targetFound', () => {
+      startSpawn();
+    });
+
+    // マーカー喪失
+    marker.addEventListener('targetLost', () => {
+      stopSpawn();
     });
   </script>
 </body>
