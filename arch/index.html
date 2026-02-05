@@ -2,81 +2,41 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Heart AR - Fixed Hiro Marker</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>AR.js Test - Hiro Marker</title>
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
 
 <body style="margin:0; overflow:hidden;">
 
-  <button id="capture" style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:1000; font-size:18px; padding:12px 24px; border-radius:30px; border:none; background:#ff4b5c; color:white; font-weight:bold;">撮影する</button>
-
   <a-scene 
     embedded 
-    arjs="sourceType: webcam; debugUIEnabled: false;" 
-    vr-mode-ui="enabled: false"
-    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true;">
+    arjs="sourceType: webcam; debugUIEnabled: false;"
+    renderer="logarithmicDepthBuffer: true;">
 
     <a-marker preset="hiro">
+      
+      <a-box position="0 0.5 0" material="color: red; opacity: 0.5;"></a-box>
+
       <a-entity 
         gltf-model="url(https://bbs-event-dining.github.io/arch/arch.glb)" 
         position="0 0 0" 
-        scale="1 1 1">
+        scale="1 1 1"
+        on-model-error>
       </a-entity>
-      <a-entity id="heart-container"></a-entity>
+
     </a-marker>
 
     <a-entity camera></a-entity>
   </a-scene>
 
-<script>
-  const container = document.querySelector('#heart-container');
+  <script>
+    // モデル読み込みエラーをチェックするスクリプト
+    document.querySelector('[gltf-model]').addEventListener('model-error', (e) => {
+      console.error("モデルの読み込みに失敗しました:", e);
+      alert("モデルが読み込めません。URLが正しいか確認してください。");
+    });
+  </script>
 
-  function spawnHeart() {
-    const heart = document.createElement('a-entity');
-    const x = (Math.random() - 0.5) * 0.3;
-    const z = (Math.random() - 0.5) * 0.3;
-    const y0 = 0.1;
-    const y1 = y0 + 0.8;
-    const s = 0.1;
-
-    heart.setAttribute('gltf-model', 'url(https://bbs-event-dining.github.io/arch/heart_F.glb)');
-    heart.setAttribute('position', `${x} ${y0} ${z}`);
-    heart.setAttribute('scale', `${s} ${s} ${s}`);
-    heart.setAttribute('animation__move', `property: position; to: ${x} ${y1} ${z}; dur: 1200; easing: easeOutQuad`);
-    heart.setAttribute('animation__scale', `property: scale; to: ${s*1.5} ${s*1.5} ${s*1.5}; dur: 800; easing: easeOutBack`);
-
-    heart.addEventListener('animationcomplete__move', () => heart.remove());
-    container.appendChild(heart);
-  }
-
-  setInterval(spawnHeart, 300);
-
-  // --- 合成撮影ロジック ---
-  document.querySelector('#capture').addEventListener('click', () => {
-    const sceneEl = document.querySelector('a-scene');
-    const video = document.querySelector('video');
-    const canvas = sceneEl.canvas;
-
-    if (!video || !canvas) return;
-
-    const outputCanvas = document.createElement('canvas');
-    outputCanvas.width = canvas.width;
-    outputCanvas.height = canvas.height;
-    const ctx = outputCanvas.getContext('2d');
-
-    // 1. カメラ映像を描画
-    ctx.drawImage(video, 0, 0, outputCanvas.width, outputCanvas.height);
-    // 2. 3Dモデルを合成
-    ctx.drawImage(canvas, 0, 0, outputCanvas.width, outputCanvas.height);
-
-    const dataUrl = outputCanvas.toDataURL('image/png');
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = `AR_Hiro_Capture.png`;
-    a.click();
-  });
-</script>
 </body>
 </html>
