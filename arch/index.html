@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Heart AR Fountain - Camera Fixed</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  
+
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
 </head>
@@ -16,19 +16,23 @@
 
   <a-scene embedded vr-mode-ui="enabled:false">
 
-    <!-- cameraに追従 -->
-    <a-entity id="cameraRig">
-      <a-entity camera look-controls wasd-controls>
-        <!-- arch.glb（固定） -->
+    <a-entity camera look-controls>
+
+      <!-- wrapper: カメラ前 1.2m、画面中央 -->
+      <a-entity id="wrapper" position="0 0 -1.2">
+
+        <!-- arch.glb 固定 -->
         <a-entity
           gltf-model="url(https://bbs-event-dining.github.io/arch/arch.glb)"
-          position="0 -0.2 -1.5"
-          scale="2 2 2">
+          scale="2 2 2"
+          position="0 -0.2 0">
         </a-entity>
 
         <!-- 湧き出し用コンテナ -->
         <a-entity id="heart-container"></a-entity>
+
       </a-entity>
+
     </a-entity>
 
   </a-scene>
@@ -39,6 +43,7 @@
   function spawnHeart() {
     const heart = document.createElement('a-entity');
 
+    // 湧く位置（wrapper内で中央からバラける）
     const x = (Math.random() - 0.5) * 0.2;
     const z = (Math.random() - 0.5) * 0.2;
     const y0 = 0;
@@ -66,13 +71,13 @@
     `);
 
     heart.addEventListener('animationcomplete__move', () => {
-      heart.parentNode.removeChild(heart);
+      heart.remove();
     });
 
     container.appendChild(heart);
   }
 
-  // 噴水ループ
+  // 湧き出しループ
   setInterval(spawnHeart, 180);
 
   // 撮影ボタン
