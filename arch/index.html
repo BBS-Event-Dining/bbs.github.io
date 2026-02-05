@@ -2,102 +2,91 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Heart AR Fountain - Camera Fixed 2m</title>
+  <title>Heart AR Fountain - 2m Fixed</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
 </head>
-
 <body style="margin:0; overflow:hidden;">
 
-  <!-- 撮影ボタン -->
-  <button id="capture" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:100;font-size:18px;padding:10px 20px;">撮影</button>
+<button id="capture" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:100;font-size:18px;padding:10px 20px;">撮影</button>
 
-  <a-scene embedded vr-mode-ui="enabled:false">
+<a-scene embedded vr-mode-ui="enabled:false">
 
-    <a-entity camera look-controls>
+  <!-- カメラ -->
+  <a-entity camera look-controls position="0 0 0"></a-entity>
 
-      <!-- wrapper: camera 前2m -->
-      <a-entity id="wrapper" position="0 0 -2">
+  <!-- arch 固定: カメラから2m前 -->
+  <a-entity 
+    gltf-model="url(https://bbs-event-dining.github.io/arch/arch.glb)" 
+    position="0 0.2 -2" 
+    scale="2 2 2">
+  </a-entity>
 
-        <!-- arch.glb 固定（2倍サイズ、床から少し浮かせる） -->
-        <a-entity
-          gltf-model="url(https://bbs-event-dining.github.io/arch/arch.glb)"
-          position="0 0.2 0"
-          scale="2 2 2">
-        </a-entity>
+  <!-- 湧きハート用コンテナ -->
+  <a-entity id="heart-container"></a-entity>
 
-        <!-- 湧き出し用コンテナ -->
-        <a-entity id="heart-container"></a-entity>
-
-      </a-entity>
-
-    </a-entity>
-
-  </a-scene>
+</a-scene>
 
 <script>
-  const container = document.querySelector('#heart-container');
+const container = document.querySelector('#heart-container');
 
-  function spawnHeart() {
-    const heart = document.createElement('a-entity');
+function spawnHeart() {
+  const heart = document.createElement('a-entity');
 
-    const x = (Math.random() - 0.5) * 0.4;
-    const z = (Math.random() - 0.5) * 0.4;
-    const y0 = 0;
-    const y1 = y0 + 0.8 + Math.random() * 0.3;
+  // 湧き位置ランダム
+  const x = (Math.random() - 0.5) * 0.4;
+  const z = (Math.random() - 0.5) * 0.4;
+  const y0 = 0.2;
+  const y1 = y0 + 0.8 + Math.random()*0.3;
 
-    const s = 0.05 + Math.random() * 0.05;
+  const s = 0.05 + Math.random()*0.05;
 
-    heart.setAttribute('gltf-model', 'url(https://bbs-event-dining.github.io/arch/heart_F.glb)');
-    heart.setAttribute('position', `${x} ${y0} ${z}`);
-    heart.setAttribute('scale', `${s} ${s} ${s}`);
+  heart.setAttribute('gltf-model','url(https://bbs-event-dining.github.io/arch/heart_F.glb)');
+  heart.setAttribute('position',`${x} ${y0} ${z-2}`); // cameraから2mに合わせる
+  heart.setAttribute('scale',`${s} ${s} ${s}`);
 
-    heart.setAttribute('animation__move', `
-      property: position;
-      to: ${x} ${y1} ${z};
-      dur: 1200;
-      easing: easeOutQuad
-    `);
+  heart.setAttribute('animation__move',`
+    property: position;
+    to: ${x} ${y1} ${z-2};
+    dur: 1200;
+    easing: easeOutQuad
+  `);
 
-    heart.setAttribute('animation__scale', `
-      property: scale;
-      to: ${s*1.5} ${s*1.5} ${s*1.5};
-      dur: 600;
-      easing: easeOutBack
-    `);
+  heart.setAttribute('animation__scale',`
+    property: scale;
+    to: ${s*1.5} ${s*1.5} ${s*1.5};
+    dur: 600;
+    easing: easeOutBack
+  `);
 
-    heart.addEventListener('animationcomplete__move', () => {
-      heart.remove();
-    });
+  heart.addEventListener('animationcomplete__move',()=>heart.remove());
+  container.appendChild(heart);
+}
 
-    container.appendChild(heart);
-  }
+// 湧き出しループ
+setInterval(spawnHeart,180);
 
-  // 湧き出しループ
-  setInterval(spawnHeart, 180);
+// 縦構図でスクリーンショット
+document.querySelector('#capture').addEventListener('click',()=>{
+  const sceneEl = document.querySelector('a-scene');
+  const canvas = sceneEl.renderer.domElement;
 
-  // 縦構図で撮影
-  document.querySelector('#capture').addEventListener('click', () => {
-    const sceneEl = document.querySelector('a-scene');
-    const canvas = sceneEl.renderer.domElement;
+  const rotatedCanvas = document.createElement('canvas');
+  rotatedCanvas.width = canvas.height;
+  rotatedCanvas.height = canvas.width;
+  const ctx = rotatedCanvas.getContext('2d');
 
-    const rotatedCanvas = document.createElement('canvas');
-    rotatedCanvas.width = canvas.height;
-    rotatedCanvas.height = canvas.width;
-    const ctx = rotatedCanvas.getContext('2d');
+  ctx.translate(rotatedCanvas.width/2, rotatedCanvas.height/2);
+  ctx.rotate(90 * Math.PI/180);
+  ctx.drawImage(canvas, -canvas.width/2, -canvas.height/2);
 
-    ctx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
-    ctx.rotate(90 * Math.PI / 180);
-    ctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
-
-    rotatedCanvas.toBlob(blob => {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'AR_capture.png';
-      a.click();
-    }, 'image/png');
-  });
+  rotatedCanvas.toBlob(blob=>{
+    const a=document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'AR_capture.png';
+    a.click();
+  },'image/png');
+});
 </script>
 
 </body>
