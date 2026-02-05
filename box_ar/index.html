@@ -1,36 +1,107 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
+  <title>Box AR - Complete</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>AR CHECK - Fixed</title>
-
+  
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
-
-  <style>
-    body { margin: 0; overflow: hidden; }
-  </style>
 </head>
 
-<body>
-  <a-scene
-    embedded
-    vr-mode-ui="enabled: false"
-    renderer="antialias: true; alpha: true; preserveDrawingBuffer: true;"
-    arjs="sourceType: webcam; debugUIEnabled: false;">
+<body style="margin:0; overflow:hidden;">
 
-    <a-marker preset="hiro">
-      <a-entity 
-        gltf-model="url(あなたのモデルパス.glb)" 
-        animation-mixer 
-        scale="1 1 1"
-        position="0 0 0">
+  <div style="position:fixed; bottom:30px; left:50%; transform:translateX(-50%); z-index:1000; display:flex; gap:20px;">
+    <button id="lock" style="padding:12px 20px; border-radius:10px; border:none; background:#4CAF50; color:white; font-weight:bold; box-shadow:0 4px 10px rgba(0,0,0,0.3);">位置を固定</button>
+    <button id="capture" style="width:70px; height:70px; border-radius:50%; border:5px solid white; background:#ff4b5c; box-shadow: 0 4px 15px rgba(0,0,0,0.4);"></button>
+  </div>
+
+  <a-scene 
+    embedded 
+    arjs="sourceType: webcam; debugUIEnabled: false;" 
+    vr-mode-ui="enabled: false"
+    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true;">
+
+    <a-marker preset="hiro" id="marker">
+      <a-entity id="ar-content">
+        <a-entity 
+          id="box-model"
+          gltf-model="url(https://bbs-event-dining.github.io/bbs.github.io/box_ar/box_toAR.glb)" 
+          animation-mixer="clip: *; loop: repeat"
+          position="0 0 0" 
+          scale="1 1 1">
+        </a-entity>
       </a-entity>
     </a-marker>
 
-    <a-entity camera></a-entity>
+    <a-entity camera id="main-camera"></a-entity>
   </a-scene>
+
+<script>
+  const marker = document.querySelector('#marker');
+  const content = document.querySelector('#ar-content');
+  const lockBtn = document.querySelector('#lock');
+  const sceneEl = document.querySelector('a-scene');
+
+  let isLocked = false;
+
+  // 位置固定：消失防止ロジック
+  lockBtn.addEventListener('click', () => {
+    if (isLocked) {
+      marker.appendChild(content);
+      content.object3D.position.set(0, 0, 0);
+      content.object3D.rotation.set(0, 0, 0);
+      lockBtn.innerText = "位置を固定";
+      lockBtn.style.background = "#4CAF50";
+      isLocked = false;
+    } else {
+      const worldPos = new THREE.Vector3();
+      const worldQuat = new THREE.Quaternion();
+      content.object3D.updateMatrixWorld(true);
+      content.object3D.getWorldPosition(worldPos);
+      content.object3D.getWorldQuaternion(worldQuat);
+      sceneEl.appendChild(content); 
+      content.object3D.position.copy(worldPos);
+      content.object3D.quaternion.copy(worldQuat);
+      lockBtn.innerText = "固定解除";
+      lockBtn.style.background = "#f44336";
+      isLocked = true;
+    }
+  });
+
+  // 撮影：縦横比維持ロジック
+  document.querySelector('#capture').addEventListener('click', () => {
+    const video = document.querySelector('video');
+    const canvas = sceneEl.canvas;
+    sceneEl.renderer.render(sceneEl.object3D, document.querySelector('[camera]').getObject3D('camera'));
+
+    const outputCanvas = document.createElement('canvas');
+    outputCanvas.width = video.videoWidth;
+    outputCanvas.height = video.videoHeight;
+    const ctx = outputCanvas.getContext('2d');
+
+    ctx.drawImage(video, 0, 0, outputCanvas.width, outputCanvas.height);
+    
+    const canvasAspect = canvas.width / canvas.height;
+    const videoAspect = video.videoWidth / video.videoHeight;
+    let drawW = outputCanvas.width, drawH = outputCanvas.height, offsetX = 0, offsetY = 0;
+
+    if (canvasAspect > videoAspect) {
+        drawH = outputCanvas.width / canvasAspect;
+        offsetY = (outputCanvas.height - drawH) / 2;
+    } else {
+        drawW = outputCanvas.height * canvasAspect;
+        offsetX = (outputCanvas.width - drawW) / 2;
+    }
+
+    ctx.drawImage(canvas, offsetX, offsetY, drawW, drawH);
+
+    const link = document.createElement('a');
+    link.href = outputCanvas.toDataURL('image/png');
+    link.download = `AR_Box_Capture.png`;
+    link.click();
+  });
+</script>
 </body>
 </html>
