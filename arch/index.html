@@ -2,91 +2,103 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Heart AR - Fixed Capture</title>
+  <title>Heart AR Fountain - Camera Fixed 2m</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 </head>
 
 <body style="margin:0; overflow:hidden;">
 
-  <button id="capture" style="position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:1000; font-size:18px; padding:12px 24px; border-radius:30px; border:none; background:#ff4b5c; color:white; font-weight:bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3);">撮影する</button>
+  <!-- 撮影ボタン -->
+  <button id="capture" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:100;font-size:18px;padding:10px 20px;">撮影</button>
 
-  <a-scene 
-    embedded 
-    arjs="sourceType: webcam; debugUIEnabled: false;" 
-    vr-mode-ui="enabled: false"
-    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true;">
-    
-    <a-entity id="wrapper" position="0 0 -3">
-      <a-entity
-        gltf-model="url(https://bbs-event-dining.github.io/arch/arch.glb)"
-        scale="2 2 2"
-        position="0 -1 0">
+  <a-scene embedded vr-mode-ui="enabled:false">
+
+    <a-entity camera look-controls>
+
+      <!-- wrapper: camera 前2m -->
+      <a-entity id="wrapper" position="0 0 -2">
+
+        <!-- arch.glb 固定（2倍サイズ、床から少し浮かせる） -->
+        <a-entity
+          gltf-model="url(https://bbs-event-dining.github.io/arch/arch.glb)"
+          position="0 0.2 0"
+          scale="2 2 2">
+        </a-entity>
+
+        <!-- 湧き出し用コンテナ -->
+        <a-entity id="heart-container"></a-entity>
+
       </a-entity>
-      <a-entity id="heart-container"></a-entity>
+
     </a-entity>
 
-    <a-entity camera></a-entity>
   </a-scene>
 
 <script>
-  // ハート生成ロジック
   const container = document.querySelector('#heart-container');
+
   function spawnHeart() {
     const heart = document.createElement('a-entity');
+
     const x = (Math.random() - 0.5) * 0.4;
     const z = (Math.random() - 0.5) * 0.4;
-    const y0 = -0.8;
-    const y1 = y0 + 1.2 + Math.random() * 0.5;
-    const s = 0.08 + Math.random() * 0.05;
+    const y0 = 0;
+    const y1 = y0 + 0.8 + Math.random() * 0.3;
+
+    const s = 0.05 + Math.random() * 0.05;
 
     heart.setAttribute('gltf-model', 'url(https://bbs-event-dining.github.io/arch/heart_F.glb)');
     heart.setAttribute('position', `${x} ${y0} ${z}`);
     heart.setAttribute('scale', `${s} ${s} ${s}`);
-    heart.setAttribute('animation__move', `property: position; to: ${x} ${y1} ${z}; dur: 1500; easing: easeOutQuad`);
-    heart.setAttribute('animation__scale', `property: scale; to: ${s*1.8} ${s*1.8} ${s*1.8}; dur: 800; easing: easeOutBack`);
 
-    heart.addEventListener('animationcomplete__move', () => { heart.remove(); });
+    heart.setAttribute('animation__move', `
+      property: position;
+      to: ${x} ${y1} ${z};
+      dur: 1200;
+      easing: easeOutQuad
+    `);
+
+    heart.setAttribute('animation__scale', `
+      property: scale;
+      to: ${s*1.5} ${s*1.5} ${s*1.5};
+      dur: 600;
+      easing: easeOutBack
+    `);
+
+    heart.addEventListener('animationcomplete__move', () => {
+      heart.remove();
+    });
+
     container.appendChild(heart);
   }
-  setInterval(spawnHeart, 200);
 
-  // --- 修正版：合成撮影ロジック ---
+  // 湧き出しループ
+  setInterval(spawnHeart, 180);
+
+  // 縦構図で撮影
   document.querySelector('#capture').addEventListener('click', () => {
     const sceneEl = document.querySelector('a-scene');
-    const video = document.querySelector('video'); // AR.jsが作るカメラ映像
-    const canvas = sceneEl.canvas; // A-Frameの3D映像
+    const canvas = sceneEl.renderer.domElement;
 
-    if (!video || !canvas) {
-      alert("カメラの準備ができていません");
-      return;
-    }
+    const rotatedCanvas = document.createElement('canvas');
+    rotatedCanvas.width = canvas.height;
+    rotatedCanvas.height = canvas.width;
+    const ctx = rotatedCanvas.getContext('2d');
 
-    // 合成用キャンバスを作成
-    const outputCanvas = document.createElement('canvas');
-    outputCanvas.width = canvas.width;
-    outputCanvas.height = canvas.height;
-    const ctx = outputCanvas.getContext('2d');
+    ctx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
+    ctx.rotate(90 * Math.PI / 180);
+    ctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
 
-    // 1. カメラ映像をキャンバスいっぱいに描画
-    ctx.drawImage(video, 0, 0, outputCanvas.width, outputCanvas.height);
-    
-    // 2. 3Dモデルをその上に描画
-    ctx.drawImage(canvas, 0, 0, outputCanvas.width, outputCanvas.height);
-
-    // 3. ダウンロード
-    try {
-      const dataUrl = outputCanvas.toDataURL('image/png');
+    rotatedCanvas.toBlob(blob => {
       const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = `AR_Capture_${Date.now()}.png`;
+      a.href = URL.createObjectURL(blob);
+      a.download = 'AR_capture.png';
       a.click();
-    } catch (e) {
-      console.error(e);
-      alert("保存に失敗しました。ブラウザの設定を確認してください。");
-    }
+    }, 'image/png');
   });
 </script>
+
 </body>
 </html>
