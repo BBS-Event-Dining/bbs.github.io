@@ -2,9 +2,8 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Heart Waku AR - Animation Fixed</title>
+  <title>Heart Waku AR - 2.5x Size</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
@@ -13,8 +12,8 @@
 <body style="margin:0; overflow:hidden;">
 
   <div style="position:fixed; bottom:30px; left:50%; transform:translateX(-50%); z-index:1000; display:flex; gap:20px;">
-    <button id="lock" style="padding:12px 20px; border-radius:10px; border:none; background:#4CAF50; color:white; font-weight:bold; box-shadow:0 4px 10px rgba(0,0,0,0.3);">位置を固定</button>
-    <button id="capture" style="width:70px; height:70px; border-radius:50%; border:5px solid white; background:#ff4b5c; box-shadow: 0 4px 15px rgba(0,0,0,0.4);"></button>
+    <button id="lock" style="padding:12px 20px; border-radius:10px; border:none; background:#4CAF50; color:white; font-weight:bold;">位置を固定</button>
+    <button id="capture" style="width:70px; height:70px; border-radius:50%; border:5px solid white; background:#ff4b5c;"></button>
   </div>
 
   <a-scene 
@@ -28,9 +27,9 @@
         <a-entity 
           id="waku-model"
           gltf-model="url(https://bbs-event-dining.github.io/bbs.github.io/heart_waku/heart_waku.glb)" 
-          animation-mixer="loop: repeat"
+          animation-mixer="clip: *; loop: repeat; timeScale: 1"
           position="0 0 0" 
-          scale="1 1 1">
+          scale="2.5 2.5 2.5">
         </a-entity>
       </a-entity>
     </a-marker>
@@ -46,56 +45,14 @@
 
   let isLocked = false;
 
-  // 位置固定ロジック
   lockBtn.addEventListener('click', () => {
-    const obj3D = content.object3D;
     if (isLocked) {
       marker.appendChild(content);
-      obj3D.position.set(0, 0, 0);
-      obj3D.rotation.set(0, 0, 0);
-      obj3D.scale.set(1, 1, 1);
+      content.object3D.position.set(0, 0, 0);
+      content.object3D.rotation.set(0, 0, 0);
       lockBtn.innerText = "位置を固定";
       lockBtn.style.background = "#4CAF50";
       isLocked = false;
     } else {
       const worldPos = new THREE.Vector3();
       const worldQuat = new THREE.Quaternion();
-      const worldScale = new THREE.Vector3();
-      
-      obj3D.updateMatrixWorld(true);
-      obj3D.getWorldPosition(worldPos);
-      obj3D.getWorldQuaternion(worldQuat);
-      obj3D.getWorldScale(worldScale);
-
-      sceneEl.appendChild(content); 
-      obj3D.position.copy(worldPos);
-      obj3D.quaternion.copy(worldQuat);
-      obj3D.scale.copy(worldScale);
-
-      lockBtn.innerText = "固定解除";
-      lockBtn.style.background = "#f44336";
-      isLocked = true;
-    }
-  });
-
-  // 撮影ロジック
-  document.querySelector('#capture').addEventListener('click', () => {
-    const video = document.querySelector('video');
-    const canvas = sceneEl.canvas;
-    
-    const outputCanvas = document.createElement('canvas');
-    outputCanvas.width = video.videoWidth;
-    outputCanvas.height = video.videoHeight;
-    const ctx = outputCanvas.getContext('2d');
-
-    ctx.drawImage(video, 0, 0, outputCanvas.width, outputCanvas.height);
-    ctx.drawImage(canvas, 0, 0, outputCanvas.width, outputCanvas.height);
-
-    const link = document.createElement('a');
-    link.href = outputCanvas.toDataURL('image/png');
-    link.download = `AR_HeartWaku_Capture.png`;
-    link.click();
-  });
-</script>
-</body>
-</html>
