@@ -43,37 +43,37 @@ function spawnHeart() {
   const x = (Math.random() - 0.5) * 0.4;
   const z = (Math.random() - 0.5) * 0.4;
   const y0 = 0;
-  const y1 = y0 + 0.8 + Math.random()*0.3;
+  const y1 = y0 + 0.8 + Math.random() * 0.3;
 
-  const s = 0.05 + Math.random()*0.05;
+  const s = 0.05 + Math.random() * 0.05;
 
-  heart.setAttribute('gltf-model','url(https://bbs-event-dining.github.io/arch/heart_F.glb)');
-  heart.setAttribute('position',`${x} ${y0} ${z}`);
-  heart.setAttribute('scale',`${s} ${s} ${s}`);
+  heart.setAttribute('gltf-model', 'url(https://bbs-event-dining.github.io/arch/heart_F.glb)');
+  heart.setAttribute('position', `${x} ${y0} ${z}`);
+  heart.setAttribute('scale', `${s} ${s} ${s}`);
 
-  heart.setAttribute('animation__move',`
+  heart.setAttribute('animation__move', `
     property: position;
     to: ${x} ${y1} ${z};
     dur: 1200;
     easing: easeOutQuad
   `);
 
-  heart.setAttribute('animation__scale',`
+  heart.setAttribute('animation__scale', `
     property: scale;
     to: ${s*1.5} ${s*1.5} ${s*1.5};
     dur: 600;
     easing: easeOutBack
   `);
 
-  heart.addEventListener('animationcomplete__move',()=>heart.remove());
+  heart.addEventListener('animationcomplete__move', () => heart.remove());
   container.appendChild(heart);
 }
 
 // 湧き出しループ
-setInterval(spawnHeart,180);
+setInterval(spawnHeart, 180);
 
 // 縦構図で撮影
-document.querySelector('#capture').addEventListener('click',()=>{
+document.querySelector('#capture').addEventListener('click', () => {
   const sceneEl = document.querySelector('a-scene');
   const canvas = sceneEl.renderer.domElement;
 
@@ -82,16 +82,16 @@ document.querySelector('#capture').addEventListener('click',()=>{
   rotatedCanvas.height = canvas.width;
   const ctx = rotatedCanvas.getContext('2d');
 
-  ctx.translate(rotatedCanvas.width/2, rotatedCanvas.height/2);
-  ctx.rotate(90 * Math.PI/180);
-  ctx.drawImage(canvas, -canvas.width/2, -canvas.height/2);
+  ctx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
+  ctx.rotate(90 * Math.PI / 180);
+  ctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
 
-  rotatedCanvas.toBlob(blob=>{
-    const a=document.createElement('a');
+  rotatedCanvas.toBlob(blob => {
+    const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = 'AR_capture.png';
     a.click();
-  },'image/png');
+  }, 'image/png');
 });
 </script>
 
