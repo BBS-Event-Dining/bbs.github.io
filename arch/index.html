@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Heart AR - Fountain Only</title>
+  <title>Heart AR - Absolute Fixed</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -19,7 +19,7 @@
     embedded 
     arjs="sourceType: webcam; debugUIEnabled: false;" 
     vr-mode-ui="enabled: false"
-    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true;">
+    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true;">
 
     <a-marker preset="hiro" id="marker">
       <a-entity id="ar-content">
@@ -33,7 +33,7 @@
       </a-entity>
     </a-marker>
 
-    <a-entity camera></a-entity>
+    <a-entity camera id="main-camera"></a-entity>
   </a-scene>
 
 <script>
@@ -42,26 +42,22 @@
   const container = document.querySelector('#heart-container');
   const lockBtn = document.querySelector('#lock');
   const sceneEl = document.querySelector('a-scene');
+  const cameraEl = document.querySelector('#main-camera');
   const HEART_URL = 'https://bbs-event-dining.github.io/bbs.github.io/arch/heart_F.glb';
 
   let isLocked = false;
   let heartInterval;
 
-  // 噴き出すハート生成（寝た状態から起き上がる）
   function spawnHeart() {
     const heart = document.createElement('a-entity');
     const x = (Math.random() - 0.5) * 0.6;
     const z = (Math.random() - 0.5) * 0.6;
-    const y0 = 0.05, y1 = y0 + 1.2, s = 0.06; 
-
     heart.setAttribute('gltf-model', `url(${HEART_URL})`);
-    heart.setAttribute('position', `${x} ${y0} ${z}`);
-    heart.setAttribute('scale', `${s} ${s} ${s}`);
-    heart.setAttribute('rotation', '-90 0 0'); // 最初は寝ている
-
-    heart.setAttribute('animation__move', `property: position; to: ${x} ${y1} ${z}; dur: 2500; easing: easeOutQuad`);
+    heart.setAttribute('position', `${x} 0.05 ${z}`);
+    heart.setAttribute('scale', '0.06 0.06 0.06');
+    heart.setAttribute('rotation', '-90 0 0');
+    heart.setAttribute('animation__move', `property: position; to: ${x} 1.2 ${z}; dur: 2500; easing: easeOutQuad`);
     heart.setAttribute('animation__rot', `property: rotation; to: 0 0 0; dur: 1500; easing: easeOutQuad`);
-    
     heart.addEventListener('animationcomplete__move', () => heart.remove());
     container.appendChild(heart);
   }
@@ -70,55 +66,57 @@
     if (!heartInterval) heartInterval = setInterval(spawnHeart, 350);
   });
 
-  // 位置固定：archと噴水をセットで固定
+  // --- 位置固定：消失防止ロジック ---
   lockBtn.addEventListener('click', () => {
-    const obj3D = content.object3D;
     if (isLocked) {
       marker.appendChild(content);
-      obj3D.position.set(0, 0, 0);
-      obj3D.rotation.set(0, 0, 0);
-      obj3D.scale.set(1, 1, 1);
+      content.object3D.position.set(0, 0, 0);
+      content.object3D.rotation.set(0, 0, 0);
       lockBtn.innerText = "位置を固定";
-      lockBtn.style.background = "#4CAF50";
       isLocked = false;
     } else {
+      // 現在の「画面上の見え方」を維持したままカメラ空間へ移動
       const worldPos = new THREE.Vector3();
       const worldQuat = new THREE.Quaternion();
-      const worldScale = new THREE.Vector3();
       
-      obj3D.updateMatrixWorld(true);
-      obj3D.getWorldPosition(worldPos);
-      obj3D.getWorldQuaternion(worldQuat);
-      obj3D.getWorldScale(worldScale);
+      content.object3D.updateMatrixWorld(true);
+      content.object3D.getWorldPosition(worldPos);
+      content.object3D.getWorldQuaternion(worldQuat);
 
-      sceneEl.appendChild(content); 
+      sceneEl.appendChild(content); // シーン直下に移動（マーカーから切り離し）
       
-      obj3D.position.copy(worldPos);
-      obj3D.quaternion.copy(worldQuat);
-      obj3D.scale.copy(worldScale);
-
+      content.object3D.position.copy(worldPos);
+      content.object3D.quaternion.copy(worldQuat);
+      
       lockBtn.innerText = "固定解除";
-      lockBtn.style.background = "#f44336";
       isLocked = true;
     }
   });
 
-  // 撮影：現在のビデオ解像度（縦横）を自動取得して合成
+  // --- 撮影：OBJ消失防止ロジック ---
   document.querySelector('#capture').addEventListener('click', () => {
     const video = document.querySelector('video');
     const canvas = sceneEl.canvas;
     
+    // 描画バッファを強制更新
+    sceneEl.renderer.render(sceneEl.object3D, cameraEl.getObject3D('camera'));
+
     const outputCanvas = document.createElement('canvas');
+    // カメラ映像の解像度に合わせる
     outputCanvas.width = video.videoWidth;
     outputCanvas.height = video.videoHeight;
     const ctx = outputCanvas.getContext('2d');
 
+    // 背景（カメラ映像）を描画
     ctx.drawImage(video, 0, 0, outputCanvas.width, outputCanvas.height);
+    
+    // OBJ（A-Frameキャンバス）を映像サイズに合わせて上書き描画
     ctx.drawImage(canvas, 0, 0, outputCanvas.width, outputCanvas.height);
 
+    const dataUrl = outputCanvas.toDataURL('image/png');
     const link = document.createElement('a');
-    link.href = outputCanvas.toDataURL('image/png');
-    link.download = `AR_Heart_Capture.png`;
+    link.href = dataUrl;
+    link.download = `AR_Photo_${Date.now()}.png`;
     link.click();
   });
 </script>
