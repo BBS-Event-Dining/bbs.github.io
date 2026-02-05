@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Heart AR Fountain - Hiro Marker</title>
+
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
+  <!-- AR.js -->
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
+</head>
+
+<body style="margin:0; overflow:hidden;">
+  <a-scene
+    embedded
+    vr-mode-ui="enabled: false"
+    arjs="sourceType: webcam; debugUIEnabled: false;"
+  >
+
+    <!-- Hiro Marker -->
+    <a-marker preset="hiro" id="marker">
+
+      <!-- arch.glb（固定） -->
+      <a-entity
+        gltf-model="url(arch.glb)"
+        position="0 0 0"
+        scale="1 1 1">
+      </a-entity>
+
+      <!-- マーカー隠し用 heart（常駐） -->
+      <a-entity
+        gltf-model="url(heart_F.glb)"
+        position="0 0.01 0"
+        scale="1 1 1">
+      </a-entity>
+
+      <!-- 湧き出し用コンテナ -->
+      <a-entity id="heart-container"></a-entity>
+
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <script>
+    const container = document.querySelector('#heart-container');
+
+    function spawnHeart() {
+      const heart = document.createElement('a-entity');
+
+      // 湧く位置（中央から少しバラける）
+      const x0 = (Math.random() - 0.5) * 0.2;
+      const y0 = 0.05;
+      const z0 = (Math.random() - 0.5) * 0.2;
+
+      // ランダムスケール（噴水感）
+      const s = 0.15 + Math.random() * 0.15;
+
+      heart.setAttribute('gltf-model', 'url(heart_F.glb)');
+      heart.setAttribute('position', `${x0} ${y0} ${z0}`);
+      heart.setAttribute('scale', `${s} ${s} ${s}`);
+
+      // 上に吹き上げるアニメ
+      const y1 = y0 + 0.8 + Math.random() * 0.3; // 上方向の高さランダム
+      heart.setAttribute('animation__move', `
+        property: position;
+        to: ${x0} ${y1} ${z0};
+        dur: ${1200 + Math.random() * 400};
+        easing: easeOutQuad
+      `);
+
+      // 少し大きくなる
+      heart.setAttribute('animation__scale', `
+        property: scale;
+        to: ${s * 1.5} ${s * 1.5} ${s * 1.5};
+        dur: ${600 + Math.random() * 400};
+        easing: easeOutBack
+      `);
+
+      // 消去
+      heart.addEventListener('animationcomplete__move', () => {
+        heart.parentNode.removeChild(heart);
+      });
+
+      container.appendChild(heart);
+    }
+
+    // ループ生成（間隔ランダムで噴水感）
+    function loop() {
+      spawnHeart();
+      setTimeout(loop, 150 + Math.random() * 150); // 短めで噴水感
+    }
+
+    loop();
+  </script>
+
+</body>
+</html>
