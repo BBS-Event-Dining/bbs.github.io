@@ -2,84 +2,89 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Heart AR Fountain - Hiro</title>
-
+  <title>Heart AR Fountain - Camera Fixed</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  
+  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js/aframe/build/aframe-ar.js"></script>
 </head>
 
 <body style="margin:0; overflow:hidden;">
-<a-scene
-  embedded
-  vr-mode-ui="enabled:false"
-  arjs="sourceType: webcam; debugUIEnabled:false;"
->
 
-  <a-marker preset="hiro" id="marker">
+  <!-- 撮影ボタン -->
+  <button id="capture" style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:100;font-size:18px;padding:10px 20px;">撮影</button>
 
-    <!-- arch -->
-    <a-entity
-      gltf-model="url(https://bbs-event-dining.github.io/arch/arch.glb)"
-      scale="2 2 2">
+  <a-scene embedded vr-mode-ui="enabled:false">
+
+    <!-- cameraに追従 -->
+    <a-entity id="cameraRig">
+      <a-entity camera look-controls wasd-controls>
+        <!-- arch.glb（固定） -->
+        <a-entity
+          gltf-model="url(https://bbs-event-dining.github.io/arch/arch.glb)"
+          position="0 -0.2 -1.5"
+          scale="2 2 2">
+        </a-entity>
+
+        <!-- 湧き出し用コンテナ -->
+        <a-entity id="heart-container"></a-entity>
+      </a-entity>
     </a-entity>
 
-    <!-- マーカー隠し -->
-    <a-entity
-      gltf-model="url(https://bbs-event-dining.github.io/arch/heart_F.glb)"
-      position="0 0.01 0"
-      scale="0.05 0.05 0.05">
-    </a-entity>
-
-    <!-- 湧き用 -->
-    <a-entity id="heart-container"></a-entity>
-
-  </a-marker>
-
-  <a-entity camera></a-entity>
-</a-scene>
+  </a-scene>
 
 <script>
-  const marker = document.querySelector('#marker');
-  let interval = null;
+  const container = document.querySelector('#heart-container');
 
-  marker.addEventListener('markerFound', () => {
-    if (interval) return;
+  function spawnHeart() {
+    const heart = document.createElement('a-entity');
 
-    const container = document.querySelector('#heart-container');
+    const x = (Math.random() - 0.5) * 0.2;
+    const z = (Math.random() - 0.5) * 0.2;
+    const y0 = 0;
+    const y1 = y0 + 0.8 + Math.random() * 0.3;
 
-    interval = setInterval(() => {
-      const heart = document.createElement('a-entity');
+    const s = 0.05 + Math.random() * 0.05;
 
-      const x = (Math.random() - 0.5) * 0.2;
-      const z = (Math.random() - 0.5) * 0.2;
-      const y0 = 0.05;
-      const y1 = y0 + 0.8 + Math.random() * 0.3;
+    heart.setAttribute('gltf-model', 'url(https://bbs-event-dining.github.io/arch/heart_F.glb)');
+    heart.setAttribute('position', `${x} ${y0} ${z}`);
+    heart.setAttribute('scale', `${s} ${s} ${s}`);
 
-      const s = 0.04 + Math.random() * 0.04;
+    // 噴水アニメ
+    heart.setAttribute('animation__move', `
+      property: position;
+      to: ${x} ${y1} ${z};
+      dur: 1200;
+      easing: easeOutQuad
+    `);
 
-      heart.setAttribute('gltf-model',
-        'url(https://bbs-event-dining.github.io/arch/heart_F.glb)');
-      heart.setAttribute('position', `${x} ${y0} ${z}`);
-      heart.setAttribute('scale', `${s} ${s} ${s}`);
+    heart.setAttribute('animation__scale', `
+      property: scale;
+      to: ${s*1.5} ${s*1.5} ${s*1.5};
+      dur: 600;
+      easing: easeOutBack
+    `);
 
-      heart.setAttribute('animation', `
-        property: position;
-        to: ${x} ${y1} ${z};
-        dur: 1200;
-        easing: easeOutQuad
-      `);
+    heart.addEventListener('animationcomplete__move', () => {
+      heart.parentNode.removeChild(heart);
+    });
 
-      heart.addEventListener('animationcomplete', () => {
-        heart.remove();
+    container.appendChild(heart);
+  }
+
+  // 噴水ループ
+  setInterval(spawnHeart, 180);
+
+  // 撮影ボタン
+  document.querySelector('#capture').addEventListener('click', () => {
+    const sceneEl = document.querySelector('a-scene');
+    sceneEl.components.screenshot.capture('perspective', 'image/png')
+      .then(dataUrl => {
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = 'AR_capture.png';
+        a.click();
       });
-
-      container.appendChild(heart);
-    }, 180);
-  });
-
-  marker.addEventListener('markerLost', () => {
-    clearInterval(interval);
-    interval = null;
   });
 </script>
 
