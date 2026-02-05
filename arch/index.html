@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Heart AR - Double Layer</title>
+  <title>Heart AR - Fixed Final</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -11,8 +11,8 @@
 <body style="margin:0; overflow:hidden;">
 
   <div style="position:fixed; bottom:30px; left:50%; transform:translateX(-50%); z-index:1000; display:flex; gap:20px;">
-    <button id="lock" style="padding:12px 20px; border-radius:10px; border:none; background:#4CAF50; color:white; font-weight:bold;">位置を固定</button>
-    <button id="capture" style="width:70px; height:70px; border-radius:50%; border:5px solid white; background:#ff4b5c;"></button>
+    <button id="lock" style="padding:12px 20px; border-radius:10px; border:none; background:#4CAF50; color:white; font-weight:bold; box-shadow:0 4px 10px rgba(0,0,0,0.3);">位置を固定</button>
+    <button id="capture" style="width:70px; height:70px; border-radius:50%; border:5px solid white; background:#ff4b5c; box-shadow: 0 4px 15px rgba(0,0,0,0.4);"></button>
   </div>
 
   <a-scene 
@@ -26,14 +26,13 @@
         <a-entity 
           id="arch-model"
           gltf-model="url(https://bbs-event-dining.github.io/bbs.github.io/arch/arch.glb)" 
-          position="0 0 0">
+          position="0 0 0"
+          scale="1 1 1">
         </a-entity>
 
         <a-entity id="static-hearts">
           <a-entity gltf-model="url(https://bbs-event-dining.github.io/bbs.github.io/arch/heart_F.glb)" position="0.15 0.02 0.15" rotation="-90 0 0" scale="0.08 0.08 0.08"></a-entity>
           <a-entity gltf-model="url(https://bbs-event-dining.github.io/bbs.github.io/arch/heart_F.glb)" position="-0.15 0.02 0.15" rotation="-90 45 0" scale="0.08 0.08 0.08"></a-entity>
-          <a-entity gltf-model="url(https://bbs-event-dining.github.io/bbs.github.io/arch/heart_F.glb)" position="0.15 0.02 -0.15" rotation="-90 -45 0" scale="0.08 0.08 0.08"></a-entity>
-          <a-entity gltf-model="url(https://bbs-event-dining.github.io/bbs.github.io/arch/heart_F.glb)" position="-0.15 0.02 -0.15" rotation="-90 90 0" scale="0.08 0.08 0.08"></a-entity>
         </a-entity>
 
         <a-entity id="heart-container"></a-entity>
@@ -58,15 +57,12 @@
     const heart = document.createElement('a-entity');
     const x = (Math.random() - 0.5) * 0.6;
     const z = (Math.random() - 0.5) * 0.6;
-    const y0 = 0.05; 
-    const y1 = y0 + 1.2;
-    const s = 0.06; 
+    const y0 = 0.05, y1 = y0 + 1.2, s = 0.06; 
 
     heart.setAttribute('gltf-model', `url(${HEART_URL})`);
     heart.setAttribute('position', `${x} ${y0} ${z}`);
     heart.setAttribute('scale', `${s} ${s} ${s}`);
     heart.setAttribute('rotation', '-90 0 0');
-
     heart.setAttribute('animation__move', `property: position; to: ${x} ${y1} ${z}; dur: 2500; easing: easeOutQuad`);
     heart.setAttribute('animation__rot', `property: rotation; to: 0 0 0; dur: 1500; easing: easeOutQuad`);
     
@@ -78,50 +74,60 @@
     if (!heartInterval) heartInterval = setInterval(spawnHeart, 350);
   });
 
-  // 固定ボタン
+  // --- 位置固定の修正 ---
   lockBtn.addEventListener('click', () => {
     if (isLocked) {
+      // 解除時は元のマーカーの中へ
       marker.appendChild(content);
-      content.setAttribute('position', '0 0 0');
-      content.setAttribute('rotation', '0 0 0');
+      content.object3D.position.set(0, 0, 0);
+      content.object3D.rotation.set(0, 0, 0);
+      content.object3D.scale.set(1, 1, 1);
       lockBtn.innerText = "位置を固定";
+      lockBtn.style.background = "#4CAF50";
       isLocked = false;
     } else {
+      // 固定時はワールド座標を保持してシーン直下へ移動
       const worldPos = new THREE.Vector3();
       const worldQuat = new THREE.Quaternion();
       const worldScale = new THREE.Vector3();
+      
       content.object3D.updateMatrixWorld();
       content.object3D.getWorldPosition(worldPos);
       content.object3D.getWorldQuaternion(worldQuat);
       content.object3D.getWorldScale(worldScale);
-      sceneEl.appendChild(content);
+
+      sceneEl.appendChild(content); // シーンへ移動
+      
       content.object3D.position.copy(worldPos);
       content.object3D.quaternion.copy(worldQuat);
       content.object3D.scale.copy(worldScale);
+
       lockBtn.innerText = "固定解除";
+      lockBtn.style.background = "#f44336";
       isLocked = true;
     }
   });
 
-  // 撮影
+  // --- 撮影の修正（構図維持） ---
   document.querySelector('#capture').addEventListener('click', () => {
     const video = document.querySelector('video');
     const canvas = sceneEl.canvas;
-    
-    // レンダリングが終わったタイミングで描画
-    sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+    if (!video || !canvas) return;
 
     const outputCanvas = document.createElement('canvas');
-    outputCanvas.width = 1280; 
-    outputCanvas.height = 720;
+    // ビデオ自体の表示解像度（縦横）をそのまま使う
+    outputCanvas.width = video.videoWidth;
+    outputCanvas.height = video.videoHeight;
     const ctx = outputCanvas.getContext('2d');
 
+    // 1. カメラ映像
     ctx.drawImage(video, 0, 0, outputCanvas.width, outputCanvas.height);
+    // 2. モデル（アスペクト比を合わせて描画）
     ctx.drawImage(canvas, 0, 0, outputCanvas.width, outputCanvas.height);
 
     const link = document.createElement('a');
     link.href = outputCanvas.toDataURL('image/png');
-    link.download = `AR_Heart_Scene.png`;
+    link.download = `AR_Capture_${Date.now()}.png`;
     link.click();
   });
 </script>
