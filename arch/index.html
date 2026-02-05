@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Heart AR - Hiro Marker Debug</title>
+  <title>Heart AR - Fixed URL</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -10,21 +10,17 @@
 
 <body style="margin:0; overflow:hidden;">
 
-<a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;">
+<a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
 
   <a-marker preset="hiro">
-
-    <a-box position="0 0.5 0" scale="0.2 0.2 0.2" color="blue"></a-box>
-
     <a-entity 
       id="arch-model"
-      gltf-model="url(https://bbs-event-dining.github.io/arch/arch.glb)" 
+      gltf-model="url(https://bbs-event-dining.github.io/bbs.github.io/arch/arch.glb)" 
       position="0 0 0" 
       scale="1 1 1">
     </a-entity>
 
     <a-entity id="heart-container"></a-entity>
-
   </a-marker>
 
   <a-entity camera></a-entity>
@@ -32,36 +28,38 @@
 
 <script>
 const container = document.querySelector('#heart-container');
-
-// モデルが読み込まれたか、エラーになったかをログに出す
-const arch = document.querySelector('#arch-model');
-arch.addEventListener('model-loaded', () => console.log("モデル読み込み成功！"));
-arch.addEventListener('model-error', (e) => console.error("モデル読み込み失敗:", e));
+const HEART_URL = 'https://bbs-event-dining.github.io/bbs.github.io/arch/heart_F.glb';
 
 function spawnHeart() {
   const heart = document.createElement('a-entity');
-  const x = (Math.random() - 0.5) * 0.3;
-  const z = (Math.random() - 0.5) * 0.3;
-  const y0 = 0.1;
-  const y1 = y0 + 0.5;
+  const x = (Math.random() - 0.5) * 0.4;
+  const z = (Math.random() - 0.5) * 0.4;
+  const y0 = 0.2;
+  const y1 = y0 + 0.6;
   const s = 0.1;
 
-  heart.setAttribute('gltf-model', 'url(https://bbs-event-dining.github.io/arch/heart_F.glb)');
+  heart.setAttribute('gltf-model', `url(${HEART_URL})`);
   heart.setAttribute('position', `${x} ${y0} ${z}`);
   heart.setAttribute('scale', `${s} ${s} ${s}`);
 
-  heart.setAttribute('animation__move', `property: position; to: ${x} ${y1} ${z}; dur: 1000; easing: easeOutQuad`);
-  heart.setAttribute('animation__scale', `property: scale; to: ${s*1.3} ${s*1.3} ${s*1.3}; dur: 800; easing: easeOutBack`);
+  heart.setAttribute('animation__move', `property: position; to: ${x} ${y1} ${z}; dur: 1200; easing: easeOutQuad`);
+  heart.setAttribute('animation__scale', `property: scale; to: ${s*1.5} ${s*1.5} ${s*1.5}; dur: 800; easing: easeOutBack`);
 
   heart.addEventListener('animationcomplete__move', () => heart.remove());
   container.appendChild(heart);
 }
 
-// 2秒後からハート生成開始（初期化待ち）
-setTimeout(() => {
-  setInterval(spawnHeart, 300);
-}, 2000);
+// マーカーが認識されたらハートを開始
+document.querySelector('a-marker').addEventListener('markerFound', () => {
+  if (!window.heartTimer) {
+    window.heartTimer = setInterval(spawnHeart, 300);
+  }
+});
 
+document.querySelector('a-marker').addEventListener('markerLost', () => {
+  clearInterval(window.heartTimer);
+  window.heartTimer = null;
+});
 </script>
 </body>
 </html>
