@@ -2,83 +2,128 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>BBS Heart AR</title>
+  <title>Arch AR Experience</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
   <style>
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
-    /* UIデザインは元のまま維持 */
-    #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ff4d6d; color: #fff; display: none; }
+    
+    /* 撮影ボタン：文言は「撮影」のみ */
+    #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 45px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ffb6c1; color: #fff; display: none; text-shadow: 0 1px 2px rgba(0,0,0,0.2); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    
     #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 20000; flex-direction: column; align-items: center; justify-content: center; }
-    #preview-image { max-width: 90%; max-height: 80%; border: 3px solid white; }
-    #close-btn { margin-top: 20px; padding: 12px 25px; background: white; border: none; font-weight: bold; }
+    
+    /* 縦構図を意識したプレビューサイズ */
+    #preview-image { max-width: 85%; max-height: 75%; border: 3px solid white; object-fit: contain; }
+    
+    /* 注釈：長押しで保存 */
+    .save-note { color: white; margin-bottom: 10px; font-size: 16px; font-weight: bold; }
+    
+    #close-btn { margin-top: 20px; padding: 12px 25px; background: white; border: none; font-weight: bold; cursor: pointer; border-radius: 5px; }
   </style>
 </head>
 <body>
   <button id="shoot">撮影</button>
+
   <div id="preview-container">
-    <img id="preview-image" src=""><button id="close-btn">閉じる</button>
+    <div class="save-note">長押しで保存</div>
+    <img id="preview-image" src="">
+    <button id="close-btn">閉じる</button>
   </div>
 
-  <a-scene embedded mindar-image="imageTargetSrc: ./arch.mind;" renderer="preserveDrawingBuffer: true; alpha: true;" vr-mode-ui="enabled: false">
+  <a-scene embedded 
+    mindar-image="imageTargetSrc: https://bbs-event-dining.github.io/bbs.github.io/arch/arch_pic.mind;" 
+    renderer="preserveDrawingBuffer: true; alpha: true; colorManagement: true; antialias: true;" 
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+    
     <a-assets>
-      <a-asset-item id="arch-obj" src="arch.obj"></a-asset-item>
-      <a-asset-item id="arch-mtl" src="arch.mtl"></a-asset-item>
+      <a-asset-item id="arch-model" src="https://bbs-event-dining.github.io/bbs.github.io/arch/arch.glb"></a-asset-item>
+      <img id="hanabira-img" src="https://bbs-event-dining.github.io/bbs.github.io/arch/pink_hanabira.png">
     </a-assets>
+
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
     <a-entity mindar-image-target="targetIndex: 0" id="arch-target">
-      <a-obj-model id="arch-model" src="#arch-obj" mtl="#arch-mtl" scale="0.5 0.5 0.5" position="0 -0.2 0"></a-obj-model>
+      <a-gltf-model src="#arch-model" rotation="0 0 0" position="0 0 0" scale="0.5 0.5 0.5"></a-gltf-model>
+      <a-entity id="hanabira-container"></a-entity>
     </a-entity>
   </a-scene>
 
   <script>
     const sceneEl = document.querySelector('a-scene');
     const shootBtn = document.getElementById('shoot');
-    const targetEl = document.getElementById('arch-target');
-    let isFixed = false;
 
-    sceneEl.addEventListener('renderstart', () => { shootBtn.style.display = 'block'; });
-
-    // 【震え防止】一度認識したら、位置更新を停止してロックする
-    targetEl.addEventListener("targetFound", () => {
-      if (!isFixed) {
-        // 少し待って安定させてから固定（必要に応じて調整）
-        setTimeout(() => {
-          isFixed = true; 
-        }, 500);
-      }
+    sceneEl.addEventListener('renderstart', () => {
+      shootBtn.style.display = 'block';
     });
 
-    // 毎フレームの処理で、固定後は座標を更新させない
-    sceneEl.addEventListener('tick', () => {
-      if (isFixed) {
-        // トラッキングによる自動移動を無効化（震えを止める）
-        targetEl.object3D.matrixAutoUpdate = false;
-      }
-    });
+    function spawnHanabira() {
+      const container = document.getElementById('hanabira-container');
+      const target = document.getElementById('arch-target');
+      if (!target.getAttribute('visible')) return;
 
-    // 撮影処理（背景ビデオとOBJを合成）
+      const leaf = document.createElement('a-entity');
+      const startX = (Math.random() - 0.5) * 1.5;
+      const startY = 1.0; 
+      const startZ = (Math.random() - 0.5) * 1.0;
+
+      leaf.setAttribute('geometry', { primitive: 'plane', width: 0.1, height: 0.1 });
+      leaf.setAttribute('material', { src: '#hanabira-img', transparent: true, shader: 'flat', side: 'double' });
+      leaf.setAttribute('position', `${startX} ${startY} ${startZ}`);
+      
+      leaf.setAttribute('animation__move', {
+        property: 'position',
+        to: `${startX + (Math.random()-0.5)*0.5} -1.0 ${startZ + (Math.random()-0.5)*0.5}`,
+        dur: 4000 + (Math.random() * 2000),
+        easing: 'linear'
+      });
+
+      leaf.setAttribute('animation__rotate', {
+        property: 'rotation',
+        to: `${Math.random()*360} ${Math.random()*360} ${Math.random()*360}`,
+        dur: 5000,
+        loop: true
+      });
+
+      leaf.setAttribute('animation__fade', {
+        property: 'material.opacity',
+        from: 1,
+        to: 0,
+        dur: 4000 + (Math.random() * 2000),
+        easing: 'easeInQuad'
+      });
+
+      container.appendChild(leaf);
+      setTimeout(() => leaf.remove(), 6000);
+    }
+
+    setInterval(spawnHanabira, 300);
+
+    // 撮影処理（OBJと実写を確実に合成）
     shootBtn.addEventListener('click', () => {
-      sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+      const video = document.querySelector('video');
       const canvas = document.createElement('canvas');
-      canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+      
+      // 縦構図を維持
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
       
-      // ビデオ（背景）を描画
-      const video = document.querySelector('video');
-      if (video) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      }
-      // OBJ（Canvas）を描画
+      // 1. 実写映像を先に描画
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // 2. AR（OBJ+花びら）を重ねて描画
       ctx.drawImage(sceneEl.canvas, 0, 0, canvas.width, canvas.height);
       
       document.getElementById('preview-image').src = canvas.toDataURL('image/png');
       document.getElementById('preview-container').style.display = 'flex';
     });
 
-    document.getElementById('close-btn').onclick = () => document.getElementById('preview-container').style.display = 'none';
+    document.getElementById('close-btn').onclick = () => {
+      document.getElementById('preview-container').style.display = 'none';
+    };
   </script>
 </body>
 </html>
