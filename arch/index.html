@@ -3,20 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Project</title>
+    <title>Fixed Index</title>
     <style>
         body { margin: 0; overflow: hidden; }
-        /* 撮影ボタンのスタイル */
         #capture {
             position: absolute;
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            padding: 15px 30px;
-            background: #fff;
-            border-radius: 30px;
-            border: none;
-            font-weight: bold;
+            padding: 10px 20px;
             z-index: 10;
         }
     </style>
@@ -27,50 +22,44 @@
     <script type="module">
         import * as THREE from 'https://cdn.skypack.dev/three@0.150.0';
 
-        // 1. 撮影時にOBJが消える問題を解決 (preserveDrawingBuffer)
+        // 撮影時にOBJが消えないよう preserveDrawingBuffer を追加
         const renderer = new THREE.WebGLRenderer({ 
-            antialias: true, 
+            antialias: true,
             preserveDrawingBuffer: true 
         });
         renderer.setPixelRatio(window.devicePixelRatio);
-        // 縦向きを強制
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
         const scene = new THREE.Scene();
+        // 縦向きに対応したアスペクト比
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
         let archOBJ = null;
-        let isPositionFixed = false; // 震え防止用のフラグ
+        let isPositionFixed = false; // 震えないようにするためのフラグ
 
-        // OBJ読み込み後の設定（仮定）
-        function setupOBJ(loadedObj) {
+        // OBJ読み込み時の処理（ここに読み込みコードを統合してください）
+        function onModelLoaded(loadedObj) {
             archOBJ = loadedObj;
-            // 花びら（OBJ）を半分に縮小
+            // 花びらを半分ぐらい小さく
             archOBJ.scale.set(0.5, 0.5, 0.5);
             scene.add(archOBJ);
         }
 
-        // スキャンデータに基づいた配置ロジック
-        function updatePlacement(scanData) {
-            if (isPositionFixed) return; // 確定後は動かさない（震え防止）
+        // 位置更新ロジック
+        function updatePosition(scanData) {
+            // 一度位置が決まったら更新しない（ブルブル震えるのを防止）
+            if (isPositionFixed || !archOBJ) return;
 
-            if (archOBJ && scanData) {
-                const scanBottom = scanData.boundingBox.min.y;
-                
-                // 底辺から20cm低く配置
-                archOBJ.position.y = scanBottom - 0.2;
-                archOBJ.position.x = scanData.center.x;
-                archOBJ.position.z = scanData.center.z;
-
-                // 位置を固定して震えを止める
-                isPositionFixed = true;
-            }
+            const scanBottom = scanData.boundingBox.min.y;
+            // 底辺から20cm（0.2）ぐらい低く
+            archOBJ.position.y = scanBottom - 0.2;
+            
+            isPositionFixed = true; 
         }
 
-        // 撮影処理
+        // 撮影ボタン（OBJが写るように修正）
         document.getElementById('capture').addEventListener('click', () => {
-            // canvasからデータURLを取得（preserveDrawingBufferによりOBJも写る）
             const dataURL = renderer.domElement.toDataURL('image/png');
             const link = document.createElement('a');
             link.download = 'capture.png';
@@ -78,18 +67,17 @@
             link.click();
         });
 
-        // リサイズ対応（縦長維持）
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
         function animate() {
             requestAnimationFrame(animate);
             renderer.render(scene, camera);
         }
         animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
