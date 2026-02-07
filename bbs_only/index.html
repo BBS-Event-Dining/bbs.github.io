@@ -2,14 +2,26 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>BBS Heart AR</title>
+  <title>BBS Heart AR Fixed</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
   <style>
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
     
-    /* ボタンとプレビューのスタイル */
+    /* 1. カメラ映像を最背面に固定 */
+    video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: -1;
+    }
+
+    /* 2. ARキャンバスをその上に配置 */
+    .a-canvas {
+      z-index: 1;
+    }
+
     #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ff4d6d; color: #fff; display: none; cursor: pointer; }
     #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 99999; flex-direction: column; align-items: center; justify-content: center; }
     #preview-image { width: auto; height: 85%; max-width: 95%; border: 2px solid #fff; object-fit: contain; }
@@ -27,7 +39,8 @@
     mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no;" 
     renderer="preserveDrawingBuffer: true; alpha: true; antialias: true;" 
     vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false">
+    device-orientation-permission-ui="enabled: false"
+    style="background: none;">
     
     <a-assets><img id="heart-img" src="heart.png"></a-assets>
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -85,7 +98,9 @@
 
       const sx = (video.videoWidth - outputWidth) / 2;
 
+      // ビデオを描画
       ctx.drawImage(video, sx, 0, outputWidth, outputHeight, 0, 0, outputWidth, outputHeight);
+      // ARレイヤーを重ねる
       sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
       ctx.drawImage(sceneCanvas, 0, 0, outputWidth, outputHeight);
 
