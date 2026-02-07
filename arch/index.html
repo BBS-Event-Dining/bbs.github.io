@@ -8,22 +8,33 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
   <style>
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
-    #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ffb6c1; color: #fff; display: none; text-shadow: 0 1px 2px rgba(0,0,0,0.2); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    
+    /* 撮影ボタン：文言は「撮影」のみ */
+    #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 45px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ffb6c1; color: #fff; display: none; text-shadow: 0 1px 2px rgba(0,0,0,0.2); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    
     #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 20000; flex-direction: column; align-items: center; justify-content: center; }
-    #preview-image { max-width: 90%; max-height: 80%; border: 3px solid white; }
+    
+    /* 縦構図を意識したプレビューサイズ */
+    #preview-image { max-width: 85%; max-height: 75%; border: 3px solid white; object-fit: contain; }
+    
+    /* 注釈：長押しで保存 */
+    .save-note { color: white; margin-bottom: 10px; font-size: 16px; font-weight: bold; }
+    
     #close-btn { margin-top: 20px; padding: 12px 25px; background: white; border: none; font-weight: bold; cursor: pointer; border-radius: 5px; }
   </style>
 </head>
 <body>
-  <button id="shoot">ARを撮影する</button>
+  <button id="shoot">撮影</button>
+
   <div id="preview-container">
+    <div class="save-note">長押しで保存</div>
     <img id="preview-image" src="">
     <button id="close-btn">閉じる</button>
   </div>
 
   <a-scene embedded 
     mindar-image="imageTargetSrc: https://bbs-event-dining.github.io/bbs.github.io/arch/arch_pic.mind;" 
-    renderer="preserveDrawingBuffer: true; alpha: true; colorManagement: true;" 
+    renderer="preserveDrawingBuffer: true; alpha: true; colorManagement: true; antialias: true;" 
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
     
@@ -36,7 +47,6 @@
 
     <a-entity mindar-image-target="targetIndex: 0" id="arch-target">
       <a-gltf-model src="#arch-model" rotation="0 0 0" position="0 0 0" scale="0.5 0.5 0.5"></a-gltf-model>
-      
       <a-entity id="hanabira-container"></a-entity>
     </a-entity>
   </a-scene>
@@ -45,32 +55,24 @@
     const sceneEl = document.querySelector('a-scene');
     const shootBtn = document.getElementById('shoot');
 
-    // ターゲットを認識したら撮影ボタンを表示
     sceneEl.addEventListener('renderstart', () => {
       shootBtn.style.display = 'block';
     });
 
-    // 花びらを降らせる処理
     function spawnHanabira() {
       const container = document.getElementById('hanabira-container');
       const target = document.getElementById('arch-target');
-      
-      // ターゲットが見えている時だけ生成
       if (!target.getAttribute('visible')) return;
 
       const leaf = document.createElement('a-entity');
-      
-      // 出現位置：モデルの上部（Y=1.0付近）からランダムに
       const startX = (Math.random() - 0.5) * 1.5;
       const startY = 1.0; 
       const startZ = (Math.random() - 0.5) * 1.0;
 
       leaf.setAttribute('geometry', { primitive: 'plane', width: 0.1, height: 0.1 });
       leaf.setAttribute('material', { src: '#hanabira-img', transparent: true, shader: 'flat', side: 'double' });
-      
       leaf.setAttribute('position', `${startX} ${startY} ${startZ}`);
       
-      // アニメーション：上から下へ（Y=1.0から-1.0へ）
       leaf.setAttribute('animation__move', {
         property: 'position',
         to: `${startX + (Math.random()-0.5)*0.5} -1.0 ${startZ + (Math.random()-0.5)*0.5}`,
@@ -78,7 +80,6 @@
         easing: 'linear'
       });
 
-      // 回転させて舞い落ちる感を出す
       leaf.setAttribute('animation__rotate', {
         property: 'rotation',
         to: `${Math.random()*360} ${Math.random()*360} ${Math.random()*360}`,
@@ -86,7 +87,6 @@
         loop: true
       });
 
-      // 消えていくフェードアウト
       leaf.setAttribute('animation__fade', {
         property: 'material.opacity',
         from: 1,
@@ -96,34 +96,25 @@
       });
 
       container.appendChild(leaf);
-      // 一定時間後に要素を削除
       setTimeout(() => leaf.remove(), 6000);
     }
 
-    // 300ミリ秒ごとに花びらを生成
     setInterval(spawnHanabira, 300);
 
-    // 撮影処理
+    // 撮影処理（OBJと実写を確実に合成）
     shootBtn.addEventListener('click', () => {
       const video = document.querySelector('video');
       const canvas = document.createElement('canvas');
+      
+      // 縦構図を維持
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
       
-      // 実写映像を描画
+      // 1. 実写映像を先に描画
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       
-      // ARコンテンツを描画（実写にサイズを合わせる）
+      // 2. AR（OBJ+花びら）を重ねて描画
       ctx.drawImage(sceneEl.canvas, 0, 0, canvas.width, canvas.height);
       
-      document.getElementById('preview-image').src = canvas.toDataURL('image/png');
-      document.getElementById('preview-container').style.display = 'flex';
-    });
-
-    document.getElementById('close-btn').onclick = () => {
-      document.getElementById('preview-container').style.display = 'none';
-    };
-  </script>
-</body>
-</html>
+      document.
