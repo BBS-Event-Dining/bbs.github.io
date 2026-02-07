@@ -8,8 +8,8 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
   <style>
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-    /* videoへの直接的なスタイル指定を削除 */
     
+    /* ボタンとプレビューのスタイル */
     #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ff4d6d; color: #fff; display: none; cursor: pointer; }
     #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 99999; flex-direction: column; align-items: center; justify-content: center; }
     #preview-image { width: auto; height: 85%; max-width: 95%; border: 2px solid #fff; object-fit: contain; }
@@ -24,10 +24,10 @@
   </div>
 
   <a-scene 
-    embedded 
     mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no;" 
     renderer="preserveDrawingBuffer: true; alpha: true; antialias: true;" 
-    vr-mode-ui="enabled: false">
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
     
     <a-assets><img id="heart-img" src="heart.png"></a-assets>
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -44,8 +44,14 @@
     const container = document.getElementById('bbs-container');
     let isFound = false;
 
-    targetEl.addEventListener('targetFound', () => { isFound = true; shootBtn.style.display = 'block'; });
-    targetEl.addEventListener('targetLost', () => { isFound = false; shootBtn.style.display = 'none'; });
+    targetEl.addEventListener('targetFound', () => { 
+      isFound = true; 
+      shootBtn.style.display = 'block'; 
+    });
+    targetEl.addEventListener('targetLost', () => { 
+      isFound = false; 
+      shootBtn.style.display = 'none'; 
+    });
 
     function spawnBBSHeart() {
       if (!isFound) return;
@@ -70,7 +76,6 @@
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
-      // 撮影時のみ、デバイスの画面比率に合わせて計算
       const screenAspect = window.innerWidth / window.innerHeight;
       const outputHeight = video.videoHeight;
       const outputWidth = video.videoHeight * screenAspect;
@@ -78,17 +83,12 @@
       canvas.width = outputWidth;
       canvas.height = outputHeight;
 
-      // ビデオの横幅から余分な部分をカットして中央を抽出
       const sx = (video.videoWidth - outputWidth) / 2;
 
-      // 1. カメラ映像（背景）を描画
       ctx.drawImage(video, sx, 0, outputWidth, outputHeight, 0, 0, outputWidth, outputHeight);
-
-      // 2. ARコンテンツ（A-Frame）を重ねて描画
       sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
       ctx.drawImage(sceneCanvas, 0, 0, outputWidth, outputHeight);
 
-      // 3. プレビュー表示
       document.getElementById('preview-image').src = canvas.toDataURL('image/png');
       document.getElementById('preview-container').style.display = 'flex';
     });
