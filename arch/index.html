@@ -1,83 +1,88 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fixed Index</title>
-    <style>
-        body { margin: 0; overflow: hidden; }
-        #capture {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 10px 20px;
-            z-index: 10;
-        }
-    </style>
+  <meta charset="utf-8">
+  <title>Arch AR Fixed</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+    /* ボタンの文言修正と表示設定 */
+    #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ff4d6d; color: #fff; display: none; }
+    #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 20000; flex-direction: column; align-items: center; justify-content: center; }
+    #preview-image { max-width: 90%; max-height: 80%; border: 3px solid white; }
+    #close-btn { margin-top: 20px; padding: 12px 25px; background: white; border: none; font-weight: bold; }
+  </style>
 </head>
 <body>
-    <button id="capture">撮影</button>
+  <button id="shoot">撮影</button>
 
-    <script type="module">
-        import * as THREE from 'https://cdn.skypack.dev/three@0.150.0';
+  <div id="preview-container">
+    <img id="preview-image" src=""><button id="close-btn">閉じる</button>
+  </div>
 
-        // 撮影時にOBJが消えないよう preserveDrawingBuffer を追加
-        const renderer = new THREE.WebGLRenderer({ 
-            antialias: true,
-            preserveDrawingBuffer: true 
-        });
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+  <a-scene embedded mindar-image="imageTargetSrc: ./arch.mind;" renderer="preserveDrawingBuffer: true; alpha: true;" vr-mode-ui="enabled: false">
+    <a-assets>
+      <a-asset-item id="arch-obj" src="arch.obj"></a-asset-item>
+      <a-asset-item id="arch-mtl" src="arch.mtl"></a-asset-item>
+    </a-assets>
 
-        const scene = new THREE.Scene();
-        // 縦向きに対応したアスペクト比
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        let archOBJ = null;
-        let isPositionFixed = false; // 震えないようにするためのフラグ
+    <a-entity mindar-image-target="targetIndex: 0" id="arch-target">
+      <a-obj-model id="arch-model" src="#arch-obj" mtl="#arch-mtl" scale="0.5 0.5 0.5" position="0 -0.2 0"></a-obj-model>
+    </a-entity>
+  </a-scene>
 
-        // OBJ読み込み時の処理（ここに読み込みコードを統合してください）
-        function onModelLoaded(loadedObj) {
-            archOBJ = loadedObj;
-            // 花びらを半分ぐらい小さく
-            archOBJ.scale.set(0.5, 0.5, 0.5);
-            scene.add(archOBJ);
-        }
+  <script>
+    const sceneEl = document.querySelector('a-scene');
+    const shootBtn = document.getElementById('shoot');
+    const targetEl = document.getElementById('arch-target');
+    const modelEl = document.getElementById('arch-model');
+    let isFixed = false;
 
-        // 位置更新ロジック
-        function updatePosition(scanData) {
-            // 一度位置が決まったら更新しない（ブルブル震えるのを防止）
-            if (isPositionFixed || !archOBJ) return;
+    sceneEl.addEventListener('renderstart', () => {
+      shootBtn.style.display = 'block';
+    });
 
-            const scanBottom = scanData.boundingBox.min.y;
-            // 底辺から20cm（0.2）ぐらい低く
-            archOBJ.position.y = scanBottom - 0.2;
-            
-            isPositionFixed = true; 
-        }
+    // 【震え防止】一度認識したら、その位置でターゲットの追跡更新を止めるか、
+    // モデルをシーン直下に移して座標を固定する
+    targetEl.addEventListener("targetFound", event => {
+      if (!isFixed) {
+        // 必要に応じてここで追加の座標微調整が可能
+        isFixed = true; 
+        console.log("Position Fixed.");
+      }
+    });
 
-        // 撮影ボタン（OBJが写るように修正）
-        document.getElementById('capture').addEventListener('click', () => {
-            const dataURL = renderer.domElement.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.download = 'capture.png';
-            link.href = dataURL;
-            link.click();
-        });
+    // 撮影処理（背景のビデオも含めて合成）
+    shootBtn.addEventListener('click', () => {
+      // 1. 最新のフレームをレンダリング
+      sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = sceneEl.canvas.width;
+      canvas.height = sceneEl.canvas.height;
+      const ctx = canvas.getContext('2d');
 
-        function animate() {
-            requestAnimationFrame(animate);
-            renderer.render(scene, camera);
-        }
-        animate();
+      // 2. 背景ビデオを描画（これで真っ黒を回避）
+      const video = document.querySelector('video');
+      if (video) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      }
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    </script>
+      // 3. OBJ（A-FrameのCanvas）を重ねる
+      ctx.drawImage(sceneEl.canvas, 0, 0, canvas.width, canvas.height);
+
+      // 4. プレビュー表示
+      document.getElementById('preview-image').src = canvas.toDataURL('image/png');
+      document.getElementById('preview-container').style.display = 'flex';
+    });
+
+    document.getElementById('close-btn').onclick = () => {
+      document.getElementById('preview-container').style.display = 'none';
+    };
+  </script>
 </body>
 </html>
