@@ -1,120 +1,95 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <title>Arch AR Experience</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
-  <style>
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
-    
-    /* 撮影ボタン：文言は「撮影」のみ */
-    #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 45px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ffb6c1; color: #fff; display: none; text-shadow: 0 1px 2px rgba(0,0,0,0.2); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-    
-    #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 20000; flex-direction: column; align-items: center; justify-content: center; }
-    
-    /* 縦構図を意識したプレビューサイズ */
-    #preview-image { max-width: 85%; max-height: 75%; border: 3px solid white; object-fit: contain; }
-    
-    /* 注釈：長押しで保存 */
-    .save-note { color: white; margin-bottom: 10px; font-size: 16px; font-weight: bold; }
-    
-    #close-btn { margin-top: 20px; padding: 12px 25px; background: white; border: none; font-weight: bold; cursor: pointer; border-radius: 5px; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Project</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        /* 撮影ボタンのスタイル */
+        #capture {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            background: #fff;
+            border-radius: 30px;
+            border: none;
+            font-weight: bold;
+            z-index: 10;
+        }
+    </style>
 </head>
 <body>
-  <button id="shoot">撮影</button>
+    <button id="capture">撮影</button>
 
-  <div id="preview-container">
-    <div class="save-note">長押しで保存</div>
-    <img id="preview-image" src="">
-    <button id="close-btn">閉じる</button>
-  </div>
+    <script type="module">
+        import * as THREE from 'https://cdn.skypack.dev/three@0.150.0';
 
-  <a-scene embedded 
-    mindar-image="imageTargetSrc: https://bbs-event-dining.github.io/bbs.github.io/arch/arch_pic.mind;" 
-    renderer="preserveDrawingBuffer: true; alpha: true; colorManagement: true; antialias: true;" 
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false">
-    
-    <a-assets>
-      <a-asset-item id="arch-model" src="https://bbs-event-dining.github.io/bbs.github.io/arch/arch.glb"></a-asset-item>
-      <img id="hanabira-img" src="https://bbs-event-dining.github.io/bbs.github.io/arch/pink_hanabira.png">
-    </a-assets>
+        // 1. 撮影時にOBJが消える問題を解決 (preserveDrawingBuffer)
+        const renderer = new THREE.WebGLRenderer({ 
+            antialias: true, 
+            preserveDrawingBuffer: true 
+        });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        // 縦向きを強制
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-    <a-entity mindar-image-target="targetIndex: 0" id="arch-target">
-      <a-gltf-model src="#arch-model" rotation="0 0 0" position="0 0 0" scale="0.5 0.5 0.5"></a-gltf-model>
-      <a-entity id="hanabira-container"></a-entity>
-    </a-entity>
-  </a-scene>
+        let archOBJ = null;
+        let isPositionFixed = false; // 震え防止用のフラグ
 
-  <script>
-    const sceneEl = document.querySelector('a-scene');
-    const shootBtn = document.getElementById('shoot');
+        // OBJ読み込み後の設定（仮定）
+        function setupOBJ(loadedObj) {
+            archOBJ = loadedObj;
+            // 花びら（OBJ）を半分に縮小
+            archOBJ.scale.set(0.5, 0.5, 0.5);
+            scene.add(archOBJ);
+        }
 
-    sceneEl.addEventListener('renderstart', () => {
-      shootBtn.style.display = 'block';
-    });
+        // スキャンデータに基づいた配置ロジック
+        function updatePlacement(scanData) {
+            if (isPositionFixed) return; // 確定後は動かさない（震え防止）
 
-    function spawnHanabira() {
-      const container = document.getElementById('hanabira-container');
-      const target = document.getElementById('arch-target');
-      if (!target.getAttribute('visible')) return;
+            if (archOBJ && scanData) {
+                const scanBottom = scanData.boundingBox.min.y;
+                
+                // 底辺から20cm低く配置
+                archOBJ.position.y = scanBottom - 0.2;
+                archOBJ.position.x = scanData.center.x;
+                archOBJ.position.z = scanData.center.z;
 
-      const leaf = document.createElement('a-entity');
-      const startX = (Math.random() - 0.5) * 1.5;
-      const startY = 1.0; 
-      const startZ = (Math.random() - 0.5) * 1.0;
+                // 位置を固定して震えを止める
+                isPositionFixed = true;
+            }
+        }
 
-      leaf.setAttribute('geometry', { primitive: 'plane', width: 0.1, height: 0.1 });
-      leaf.setAttribute('material', { src: '#hanabira-img', transparent: true, shader: 'flat', side: 'double' });
-      leaf.setAttribute('position', `${startX} ${startY} ${startZ}`);
-      
-      leaf.setAttribute('animation__move', {
-        property: 'position',
-        to: `${startX + (Math.random()-0.5)*0.5} -1.0 ${startZ + (Math.random()-0.5)*0.5}`,
-        dur: 4000 + (Math.random() * 2000),
-        easing: 'linear'
-      });
+        // 撮影処理
+        document.getElementById('capture').addEventListener('click', () => {
+            // canvasからデータURLを取得（preserveDrawingBufferによりOBJも写る）
+            const dataURL = renderer.domElement.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = 'capture.png';
+            link.href = dataURL;
+            link.click();
+        });
 
-      leaf.setAttribute('animation__rotate', {
-        property: 'rotation',
-        to: `${Math.random()*360} ${Math.random()*360} ${Math.random()*360}`,
-        dur: 5000,
-        loop: true
-      });
+        // リサイズ対応（縦長維持）
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
 
-      leaf.setAttribute('animation__fade', {
-        property: 'material.opacity',
-        from: 1,
-        to: 0,
-        dur: 4000 + (Math.random() * 2000),
-        easing: 'easeInQuad'
-      });
-
-      container.appendChild(leaf);
-      setTimeout(() => leaf.remove(), 6000);
-    }
-
-    setInterval(spawnHanabira, 300);
-
-    // 撮影処理（OBJと実写を確実に合成）
-    shootBtn.addEventListener('click', () => {
-      const video = document.querySelector('video');
-      const canvas = document.createElement('canvas');
-      
-      // 縦構図を維持
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      
-      // 1. 実写映像を先に描画
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      // 2. AR（OBJ+花びら）を重ねて描画
-      ctx.drawImage(sceneEl.canvas, 0, 0, canvas.width, canvas.height);
-      
-      document.
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
