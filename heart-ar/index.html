@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>AR Heart - Fix Save</title>
+  <title>AR Heart - Smooth Bounce</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
@@ -15,12 +15,10 @@
       border: none; background: #ff4d6d; color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
     }
     video { position: absolute; top: 0; left: 0; z-index: -2; }
-
     #preview-container {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.9); z-index: 20000; flex-direction: column; align-items: center; justify-content: center;
     }
-    /* img要素のタッチイベントを確実に有効化 */
     #preview-image { 
       max-width: 90%; max-height: 80%; border: 3px solid white; 
       display: block; pointer-events: auto !important; -webkit-touch-callout: default !important;
@@ -43,7 +41,7 @@
   <a-scene
     embedded
     mindar-image="imageTargetSrc: room_targets.mind; uiScanning: yes;"
-    renderer="preserveDrawingBuffer: true; alpha: true; colorManagement: true;"
+    renderer="preserveDrawingBuffer: true; alpha: true; colorManagement: true; antialias: true;"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
@@ -71,43 +69,63 @@
 
       const heart = document.createElement('a-entity');
       const startX = (Math.random() - 0.5) * 1.0; 
-      const startY = 0.5;
+      const startY = 0.5; // 上辺
+      const startZ = 0.1; // マーカー付近
+
       heart.setAttribute('gltf-model', 'url(heart2.glb)');
       heart.setAttribute('rotation', '90 0 0');
-      heart.setAttribute('position', `${startX} ${startY} 0.1`);
+      heart.setAttribute('position', `${startX} ${startY} ${startZ}`);
       heart.setAttribute('scale', '0.12 0.12 0.12');
       container.appendChild(heart);
 
-      let pos = { x: startX, y: startY, z: 0.9 };
-      let velY = 0;
-      const gravity = -0.0015;
-      const bounce = -0.6;
-      const floorY = -0.5;
-
-      heart.setAttribute('animation', {
-        property: 'position', to: `${startX} ${startY} 0.9`, dur: 600, easing: 'easeOutQuad'
+      // 1. まず90cm手前(Z:0.9)へ噴き出す
+      heart.setAttribute('animation__forward', {
+        property: 'position',
+        to: `${startX} ${startY + 0.2} 0.9`,
+        dur: 500,
+        easing: 'easeOutQuad'
       });
 
-      setTimeout(() => {
+      // 2. 噴き出した後、物理挙動（落下＆バウンド）を開始
+      heart.addEventListener('animationcomplete__forward', () => {
+        let pos = { x: startX, y: startY + 0.2, z: 0.9 };
+        let velY = 0;
+        let velZ = 0.015;       // 前方に進む速度（120cmへ向かう）
+        const gravity = -0.0015;
+        const bounce = -0.6;
+        const floorY = -0.5;
+        const targetZ = 1.2;    // 120cm手前
+
         const update = () => {
           velY += gravity;
           pos.y += velY;
+          
+          // 120cm手前まで徐々に進む
+          if (pos.z < targetZ) {
+            pos.z += velZ;
+          }
+
+          // 床に衝突
           if (pos.y <= floorY) {
             pos.y = floorY;
             velY *= bounce;
+            velZ *= 0.8; // バウンド時に前方への勢いも少し殺す
+
             if (Math.abs(velY) < 0.005) {
               setTimeout(() => { if(heart.parentNode) heart.remove(); }, 1500);
               return; 
             }
           }
-          heart.setAttribute('position', `${pos.x} ${pos.y} ${pos.z}`);
+
+          // 直接座標を書き換える（震え防止のため、文字列変換を避けてObject3Dを直接操作）
+          heart.object3D.position.set(pos.x, pos.y, pos.z);
           requestAnimationFrame(update);
         };
         update();
-      }, 600);
+      });
     }
     
-    setInterval(spawnHeart, 300);
+    setInterval(spawnHeart, 400);
 
     sceneEl.addEventListener('arReady', () => {
       arReady = true;
@@ -119,7 +137,6 @@
       if (!arReady) return;
       const video = document.querySelector('video');
       const glCanvas = sceneEl.canvas;
-      
       const canvas = document.createElement('canvas');
       const dpr = window.devicePixelRatio || 1;
       canvas.width = window.innerWidth * dpr;
@@ -142,7 +159,6 @@
       sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
       ctx.drawImage(glCanvas, 0, 0, canvas.width, canvas.height);
 
-      // Blob形式に変換して表示
       canvas.toBlob((blob) => {
         if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
         currentObjectUrl = URL.createObjectURL(blob);
@@ -153,10 +169,7 @@
 
     closeBtn.addEventListener('click', () => {
       previewContainer.style.display = 'none';
-      if (currentObjectUrl) {
-        URL.revokeObjectURL(currentObjectUrl);
-        currentObjectUrl = null;
-      }
+      if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
       previewImage.src = "";
     });
   </script>
