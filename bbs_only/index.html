@@ -7,57 +7,62 @@
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
   <style>
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
-    #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ff4d6d; color: #fff; display: none; cursor: pointer; }
-    #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 20000; flex-direction: column; align-items: center; justify-content: center; }
-    #preview-image { max-width: 90%; max-height: 80%; border: 2px solid #fff; object-fit: contain; }
-    #close-btn { margin-top: 20px; padding: 12px 25px; background: #fff; border: none; font-weight: bold; cursor: pointer; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+    #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ff4d6d; color: #fff; display: none; }
+    #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 20000; flex-direction: column; align-items: center; justify-content: center; }
+    #preview-image { max-width: 90%; max-height: 80%; border: 3px solid white; object-fit: contain; }
+    #close-btn { margin-top: 20px; padding: 12px 25px; background: white; border: none; font-weight: bold; }
   </style>
 </head>
 <body>
   <button id="shoot">撮影する</button>
   <div id="preview-container">
-    <img id="preview-image" src="">
-    <button id="close-btn">閉じる</button>
+    <img id="preview-image" src=""><button id="close-btn">閉じる</button>
   </div>
 
-  <a-scene 
-    embedded 
-    mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no;" 
-    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true;" 
-    vr-mode-ui="enabled: false">
-    
+  <a-scene embedded mindar-image="imageTargetSrc: ./bbs.mind; filterMinCF: 0.001; filterBeta: 1000;" renderer="preserveDrawingBuffer: true; alpha: true; colorManagement: true;" vr-mode-ui="enabled: false">
     <a-assets><img id="heart-img" src="heart.png"></a-assets>
-    
-    <a-camera position="0 0 0" look-controls="enabled: false">
-        <a-entity id="bbs-container" position="0 -0.5 -2"></a-entity>
-    </a-camera>
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <a-entity mindar-image-target="targetIndex: 0" id="bbs-target"></a-entity>
+    <a-entity mindar-image-target="targetIndex: 0" id="bbs-target">
+      <a-entity id="bbs-container"></a-entity>
+    </a-entity>
   </a-scene>
 
   <script>
     const sceneEl = document.querySelector('a-scene');
     const shootBtn = document.getElementById('shoot');
     const targetEl = document.getElementById('bbs-target');
-    const container = document.getElementById('bbs-container');
     let isFound = false;
 
+    // ターゲット検知の安定化
     targetEl.addEventListener('targetFound', () => { isFound = true; shootBtn.style.display = 'block'; });
-    targetEl.addEventListener('targetLost', () => { isFound = false; shootBtn.style.display = 'none'; });
+    targetEl.addEventListener('targetLost', () => { 
+      isFound = false; 
+      shootBtn.style.display = 'none';
+      document.getElementById('bbs-container').innerHTML = ''; // ターゲットを失ったらハートを即消去
+    });
 
     function spawnBBSHeart() {
       if (!isFound) return;
-      const heart = document.createElement('a-entity');
-      const startX = (Math.random() - 0.5) * 3.0; 
-      const startZ = (Math.random() - 0.5) * 2.0;
+      const container = document.getElementById('bbs-container');
 
-      heart.setAttribute('geometry', { primitive: 'plane', width: 0.15, height: 0.15 });
+      const heart = document.createElement('a-entity');
+      // 出る範囲を広範囲に（左右1.0m、前後0.8mの範囲）
+      const startX = (Math.random() - 0.5) * 2.0; 
+      const startZ = (Math.random() - 0.5) * 1.6;
+
+      heart.setAttribute('geometry', { primitive: 'plane', width: 0.1, height: 0.1 });
       heart.setAttribute('material', { src: '#heart-img', transparent: true, shader: 'flat' });
-      heart.setAttribute('position', `${startX} -1.0 ${startZ}`);
       
+      heart.setAttribute('position', `${startX} 0 ${startZ}`);
+      
+      // ゆっくり上昇させる（durを5000ms=5秒に変更）
       heart.setAttribute('animation__move', {
-        property: 'position', to: `${startX} 2.0 ${startZ}`, dur: 5000, easing: 'linear'
+        property: 'position', 
+        to: `${startX + (Math.random()-0.5)*0.2} 1.5 ${startZ}`, 
+        dur: 5000, 
+        easing: 'linear'
       });
       heart.setAttribute('animation__fade', {
         property: 'material.opacity', from: 1, to: 0, dur: 5000
@@ -66,37 +71,29 @@
       container.appendChild(heart);
       setTimeout(() => { if(heart.parentNode) heart.parentNode.removeChild(heart); }, 5000);
     }
-    setInterval(spawnBBSHeart, 400);
+    
+    setInterval(spawnBBSHeart, 400); // 生成間隔も少しゆったりに
 
+    // 撮影処理（歪み修正版）
     shootBtn.addEventListener('click', () => {
       const video = document.querySelector('video');
       const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-
-      if (!video) return;
-
-      // ビデオの実際の解像度をセット
+      
+      // ビデオの実解像度を基準にする（これで伸びなくなるわ）
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-
-      // 1. カメラ映像を描画
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // 2. ARを描画する直前にレンダリング状態を同期
-      // これを足すことで、OS問わず「今のハート」がCanvasに反映されるわ
-      sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
       
-      // 3. ARコンテンツ（ハート）を重ねる
+      const ctx = canvas.getContext('2d');
+      // 1. 背景ビデオを描画
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // 2. AR（A-FrameのCanvas）を重ねる
       ctx.drawImage(sceneEl.canvas, 0, 0, canvas.width, canvas.height);
-
-      // 4. 表示
+      
       document.getElementById('preview-image').src = canvas.toDataURL('image/png');
       document.getElementById('preview-container').style.display = 'flex';
     });
-
-    document.getElementById('close-btn').onclick = () => {
-      document.getElementById('preview-container').style.display = 'none';
-    };
+    
+    document.getElementById('close-btn').onclick = () => document.getElementById('preview-container').style.display = 'none';
   </script>
 </body>
 </html>
