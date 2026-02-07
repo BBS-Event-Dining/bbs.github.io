@@ -7,10 +7,20 @@
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+  
   <style>
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
-    #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 45px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ff6b81; color: #fff; display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-    #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 20000; flex-direction: column; align-items: center; justify-content: center; }
+    #shoot { 
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
+      z-index: 1000; padding: 15px 45px; font-size: 18px; font-weight: bold; 
+      border-radius: 50px; border: none; background: #ff6b81; color: #fff; 
+      display: none; box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
+    }
+    #preview-container { 
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background: rgba(0,0,0,0.9); z-index: 20000; flex-direction: column; 
+      align-items: center; justify-content: center; 
+    }
     #preview-image { max-width: 85%; max-height: 75%; border: 3px solid white; object-fit: contain; }
     .save-note { color: white; margin-bottom: 10px; font-size: 16px; font-weight: bold; }
     #close-btn { margin-top: 20px; padding: 12px 25px; background: white; border: none; font-weight: bold; cursor: pointer; border-radius: 5px; }
@@ -40,7 +50,7 @@
     <a-entity mindar-image-target="targetIndex: 0" id="heart-target">
       <a-gltf-model 
         src="#heart-model" 
-        rotation="0 0 0" 
+        rotation="90 0 0" 
         position="0 0 0" 
         scale="1 1 1"
         animation-mixer>
@@ -52,10 +62,12 @@
     const sceneEl = document.querySelector('a-scene');
     const shootBtn = document.getElementById('shoot');
 
+    // シーン準備完了で撮影ボタン表示
     sceneEl.addEventListener('renderstart', () => {
       shootBtn.style.display = 'block';
     });
 
+    // 撮影処理
     shootBtn.addEventListener('click', () => {
       sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
       const video = document.querySelector('video');
@@ -83,6 +95,7 @@
       document.getElementById('preview-container').style.display = 'flex';
     });
 
+    // プレビューを閉じる
     document.getElementById('close-btn').onclick = () => {
       document.getElementById('preview-container').style.display = 'none';
     };
