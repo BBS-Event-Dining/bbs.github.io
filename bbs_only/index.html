@@ -8,20 +8,13 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    /* 全画面表示の設定 */
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
-    
-    /* 撮影ボタン：成功コードのデザインを踏襲 */
     #shoot {
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000;
       padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px;
       border: none; background: #ff4d6d; color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
     }
-    
-    /* カメラ映像の配置 */
     video { position: absolute; top: 0; left: 0; z-index: -2; }
-    
-    /* プレビュー画面 */
     #preview-container {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.9); z-index: 20000; flex-direction: column; align-items: center; justify-content: center;
@@ -71,42 +64,49 @@
     let arReady = false;
     let currentObjectUrl = null;
 
-    // ハートを生成する関数
+    // ハートを生成する関数（30cm四方の奥行きに対応）
     function spawnHeart(targetId) {
       const targetEntity = document.getElementById(targetId);
-      // ターゲットが見えている時だけ実行
       if (!targetEntity || !targetEntity.getAttribute('visible')) return;
 
       const container = targetEntity.querySelector('.fountain');
       const heart = document.createElement('a-entity');
       
-      const size = 0.06 + Math.random() * 0.04;
-      const startX = (Math.random() - 0.5) * 0.1;
+      const size = 0.05 + Math.random() * 0.05;
+      
+      // 【修正箇所】30cm(0.3)四方の範囲からランダムに発生（中心から±15cm）
+      const startX = (Math.random() - 0.5) * 0.3; 
+      const startZ = (Math.random() - 0.5) * 0.3; 
 
       heart.setAttribute('geometry', { primitive: 'plane', width: size, height: size });
       heart.setAttribute('material', { src: '#heart-img', transparent: true, shader: 'flat', side: 'double' });
-      heart.setAttribute('position', `${startX} 0 0`);
       
-      const duration = 2000;
-      const spreadX = (Math.random() - 0.5) * 0.6;
+      // 【修正箇所】マーカーの面（y=0）の、指定した奥行き位置からスタート
+      heart.setAttribute('position', `${startX} 0 ${startZ}`);
+      
+      const duration = 2500;
+      const peakY = 0.4 + Math.random() * 0.2; // 40cm〜60cmの高さまで飛ぶ
 
+      // 上に飛んで、少し散らばって落ちるアニメーション
       heart.setAttribute('animation__up', {
-        property: 'position', to: `${startX + spreadX * 0.2} 0.4 0`, dur: duration * 0.4, easing: 'easeOutQuad'
+        property: 'position', to: `${startX} ${peakY} ${startZ}`, dur: duration * 0.4, easing: 'easeOutQuad'
       });
       heart.setAttribute('animation__down', {
-        property: 'position', to: `${startX + spreadX} -1.0 0`, delay: duration * 0.4, dur: duration * 0.6, easing: 'easeInQuad'
+        property: 'position', to: `${startX + (Math.random()-0.5)*0.2} -1.0 ${startZ + (Math.random()-0.5)*0.2}`, delay: duration * 0.4, dur: duration * 0.6, easing: 'easeInQuad'
+      });
+      // 回転追加
+      heart.setAttribute('animation__rot', {
+        property: 'rotation', to: `0 0 ${Math.random() > 0.5 ? 360 : -360}`, dur: duration, easing: 'linear'
       });
 
       container.appendChild(heart);
       setTimeout(() => { if(heart.parentNode) heart.remove(); }, duration);
     }
 
-    // 常時監視してハートを出す
     setInterval(() => {
       ['target0', 'target1', 'target2'].forEach(id => spawnHeart(id));
     }, 350);
 
-    // 成功したコードの撮影ロジックを完全再現
     sceneEl.addEventListener('arReady', () => {
       arReady = true;
       shootBtn.disabled = false;
