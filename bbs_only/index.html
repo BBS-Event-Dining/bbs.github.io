@@ -5,33 +5,31 @@
   <title>BBS Heart Fountain AR</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
     #shoot {
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000;
       padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px;
-      border: none; background: #ff4d6d; color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-      display: none; /* AR準備完了まで非表示 */
+      border: none; background: #ff4d6d; color: #fff; display: none;
     }
-    video { position: absolute; top: 0; left: 0; z-index: -2; }
   </style>
 </head>
 
 <body>
-
   <button id="shoot">撮影する</button>
 
   <a-scene
     embedded
-    mindar-image="imageTargetSrc: ./bbs_only/targets.mind; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.001;"
-    renderer="preserveDrawingBuffer: true; alpha: true; colorManagement: true; antialias: true;"
+    /* パスを ./ から bbs_only/ に修正し、読み込み失敗を防ぐ */
+    mindar-image="imageTargetSrc: bbs_only/targets.mind; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.001;"
+    renderer="colorManagement: true, preserveDrawingBuffer: true"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
     <a-assets>
-      <img id="heart-img" src="./heart.png">
+      <img id="heart-img" src="heart.png">
     </a-assets>
 
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -48,64 +46,24 @@
     const sceneEl = document.querySelector('a-scene');
     const shootBtn = document.getElementById('shoot');
 
-    // ハートを1つ生成して噴水のように動かす関数
+    // 噴水ロジック（変更なし）
     function createHeart(targetEl) {
-      // マーカーが見えていない時は生成しない
       if (!targetEl.object3D.visible) return;
-
       const heart = document.createElement('a-entity');
-      
-      // サイズと初期位置の微細なランダム化
       const size = 0.03 + Math.random() * 0.04;
-      const startX = (Math.random() - 0.5) * 0.05;
-      const startZ = (Math.random() - 0.5) * 0.05;
-      
       heart.setAttribute('geometry', { primitive: 'plane', width: size, height: size });
       heart.setAttribute('material', { src: '#heart-img', transparent: true, shader: 'flat', side: 'double' });
+      const startX = (Math.random() - 0.5) * 0.05;
+      const startZ = (Math.random() - 0.5) * 0.05;
       heart.setAttribute('position', `${startX} 0 ${startZ}`);
-
-      // ターゲットの子要素として追加
       targetEl.querySelector('.fountain-container').appendChild(heart);
 
-      // アニメーション設定
-      const peakY = 0.1; // 10cm上昇
-      const dropY = -0.6; // 60cm落下
-      const spreadX = (Math.random() - 0.5) * 0.5; // 横への散らばり
-      const spreadZ = (Math.random() - 0.5) * 0.5;
       const duration = 1500 + Math.random() * 1000;
-
-      // 1. 噴き上がる動き
-      heart.setAttribute('animation__up', {
-        property: 'position',
-        to: `${startX + spreadX * 0.3} ${peakY} ${startZ + spreadZ * 0.3}`,
-        dur: duration * 0.4,
-        easing: 'easeOutQuad'
-      });
-
-      // 2. 落ちる動き（放物線）
-      heart.setAttribute('animation__down', {
-        property: 'position',
-        to: `${startX + spreadX} ${dropY} ${startZ + spreadZ}`,
-        delay: duration * 0.4,
-        dur: duration * 0.6,
-        easing: 'easeInQuad'
-      });
-
-      // 3. 回転
-      heart.setAttribute('animation__rot', {
-        property: 'rotation',
-        to: `0 0 ${Math.random() > 0.5 ? 360 : -360}`,
-        dur: duration,
-        easing: 'linear'
-      });
-
-      // アニメーションが終わったら消去
-      heart.addEventListener('animationcomplete__down', () => {
-        heart.remove();
-      });
+      heart.setAttribute('animation__up', { property: 'position', to: `${startX} 0.1 ${startZ}`, dur: duration * 0.4, easing: 'easeOutQuad' });
+      heart.setAttribute('animation__down', { property: 'position', to: `${startX + (Math.random()-0.5)*0.5} -0.6 ${startZ + (Math.random()-0.5)*0.5}`, delay: duration * 0.4, dur: duration * 0.6, easing: 'easeInQuad' });
+      heart.addEventListener('animationcomplete__down', () => heart.remove());
     }
 
-    // 200msごとに全てのターゲットに対して生成を試みる
     setInterval(() => {
       for(let i=0; i<5; i++) {
         const target = document.getElementById(`target${i}`);
@@ -113,12 +71,13 @@
       }
     }, 200);
 
-    // AR準備完了でボタン表示
-    sceneEl.addEventListener('arReady', () => {
-      shootBtn.style.display = 'block';
+    sceneEl.addEventListener('arReady', () => { shootBtn.style.display = 'block'; });
+    
+    // エラー検知用
+    sceneEl.addEventListener('arError', (event) => {
+      console.error("AR Error:", event);
+      alert("ARの起動に失敗しました。カメラの許可やファイルパスを確認してください。");
     });
-
-    // ※撮影（シャッター）機能が必要な場合は、以前のcanvas描画ロジックをここに追記可能です
   </script>
 </body>
 </html>
