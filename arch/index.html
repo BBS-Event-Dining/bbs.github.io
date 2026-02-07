@@ -38,7 +38,7 @@
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
     <a-entity mindar-image-target="targetIndex: 0" id="arch-target">
-      <a-gltf-model src="#arch-model" rotation="0 0 0" position="0 -0.2 0" scale="0.25 0.25 0.25"></a-gltf-model>
+      <a-gltf-model src="#arch-model" rotation="0 0 0" position="0 -0.2 0" scale="0.5 0.5 0.5"></a-gltf-model>
       <a-entity id="hanabira-container"></a-entity>
     </a-entity>
   </a-scene>
@@ -53,13 +53,12 @@
       shootBtn.style.display = 'block';
     });
 
-    // 【震え防止】ターゲットを見つけたら安定させて固定
     targetEl.addEventListener("targetFound", () => {
       if (!isLocked) {
         setTimeout(() => {
           targetEl.object3D.matrixAutoUpdate = false; 
           isLocked = true;
-        }, 500); // 0.5秒後に固定
+        }, 500);
       }
     });
 
@@ -69,9 +68,11 @@
       if (!target.getAttribute('visible')) return;
 
       const leaf = document.createElement('a-entity');
-      const startX = (Math.random() - 0.5) * 1.5;
-      const startY = 1.0; 
-      const startZ = (Math.random() - 0.5) * 1.0;
+      // OBJの横幅に合わせて範囲を少し狭める
+      const startX = (Math.random() - 0.5) * 0.8;
+      // 【修正】OBJの上部（0.3付近）から降らせる
+      const startY = 0.3; 
+      const startZ = (Math.random() - 0.5) * 0.5;
 
       leaf.setAttribute('geometry', { primitive: 'plane', width: 0.1, height: 0.1 });
       leaf.setAttribute('material', { src: '#hanabira-img', transparent: true, shader: 'flat', side: 'double' });
@@ -79,7 +80,7 @@
       
       leaf.setAttribute('animation__move', {
         property: 'position',
-        to: `${startX + (Math.random()-0.5)*0.5} -1.0 ${startZ + (Math.random()-0.5)*0.5}`,
+        to: `${startX + (Math.random()-0.5)*0.3} -0.8 ${startZ + (Math.random()-0.5)*0.3}`,
         dur: 4000 + (Math.random() * 2000),
         easing: 'linear'
       });
@@ -93,10 +94,7 @@
 
       leaf.setAttribute('animation__fade', {
         property: 'material.opacity',
-        from: 1,
-        to: 0,
-        dur: 4000 + (Math.random() * 2000),
-        easing: 'easeInQuad'
+        from: 1, to: 0, dur: 4000 + (Math.random() * 2000), easing: 'easeInQuad'
       });
 
       container.appendChild(leaf);
@@ -105,17 +103,37 @@
 
     setInterval(spawnHanabira, 300);
 
+    // 【修正】縦向き撮影に対応
     shootBtn.addEventListener('click', () => {
-      // 描画バッファを最新に更新
       sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
       
       const video = document.querySelector('video');
       const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      
+      // スクリーン上の実際の表示サイズ（縦長）に合わせる
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
       const ctx = canvas.getContext('2d');
       
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // ビデオを画面いっぱいに描画（アスペクト比を維持して中央を切り取る）
+      const videoAspect = video.videoWidth / video.videoHeight;
+      const canvasAspect = canvas.width / canvas.height;
+      let sx, sy, sw, sh;
+
+      if (videoAspect > canvasAspect) {
+        sw = video.videoHeight * canvasAspect;
+        sh = video.videoHeight;
+        sx = (video.videoWidth - sw) / 2;
+        sy = 0;
+      } else {
+        sw = video.videoWidth;
+        sh = video.videoWidth / canvasAspect;
+        sx = 0;
+        sy = (video.videoHeight - sh) / 2;
+      }
+      
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
       ctx.drawImage(sceneEl.canvas, 0, 0, canvas.width, canvas.height);
       
       document.getElementById('preview-image').src = canvas.toDataURL('image/png');
