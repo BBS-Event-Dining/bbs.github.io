@@ -24,7 +24,7 @@
   <a-scene 
     embedded 
     mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no;" 
-    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true;" 
+    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true;" 
     vr-mode-ui="enabled: false">
     
     <a-assets><img id="heart-img" src="heart.png"></a-assets>
@@ -69,29 +69,27 @@
     setInterval(spawnBBSHeart, 400);
 
     shootBtn.addEventListener('click', () => {
-      // Mind-ARが生成するビデオ要素を確実に取得
       const video = document.querySelector('video');
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
       if (!video) return;
 
-      // ビデオの実際の解像度をセット（縦横を正しく反映）
+      // ビデオの実際の解像度をセット
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
       // 1. カメラ映像を描画
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // 2. ARコンテンツを描画（A-FrameのCanvasを現在の解像度に合わせて描画）
-      // 現在のシーンを強制的に再レンダリング
-      const renderer = sceneEl.renderer;
-      renderer.render(sceneEl.object3D, sceneEl.camera);
+      // 2. ARを描画する直前にレンダリング状態を同期
+      // これを足すことで、OS問わず「今のハート」がCanvasに反映されるわ
+      sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
       
-      // A-FrameのCanvasを合成
+      // 3. ARコンテンツ（ハート）を重ねる
       ctx.drawImage(sceneEl.canvas, 0, 0, canvas.width, canvas.height);
 
-      // 3. 結果を表示
+      // 4. 表示
       document.getElementById('preview-image').src = canvas.toDataURL('image/png');
       document.getElementById('preview-container').style.display = 'flex';
     });
