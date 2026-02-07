@@ -1,25 +1,150 @@
-<a-scene
-  embedded
-  mindar-image="imageTargetSrc: ./bbs.mind; uiScanning: yes;" 
-  renderer="preserveDrawingBuffer: true; alpha: true;"
-  vr-mode-ui="enabled: false">
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>BBS Heart AR - Multi Target</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
 
-  <a-assets>
-    <img id="heart-img" src="heart.png">
-  </a-assets>
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+    #shoot {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000;
+      padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px;
+      border: none; background: #ff4d6d; color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    }
+    video { position: absolute; top: 0; left: 0; z-index: -2; }
+    #preview-container {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.9); z-index: 20000; flex-direction: column; align-items: center; justify-content: center;
+    }
+    #preview-image { max-width: 90%; max-height: 80%; border: 3px solid white; display: block; }
+    #preview-text { color: white; margin-top: 15px; font-weight: bold; text-align: center; }
+    #close-btn { margin-top: 20px; padding: 12px 25px; background: white; border-radius: 5px; border: none; font-weight: bold; }
+  </style>
+</head>
 
-  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+<body>
 
-  <a-entity mindar-image-target="targetIndex: 0" id="target0">
-    <a-entity class="fountain"></a-entity>
-  </a-entity>
-  
-  <a-entity mindar-image-target="targetIndex: 1" id="target1">
-    <a-entity class="fountain"></a-entity>
-  </a-entity>
+  <button id="shoot" disabled>読み込み中...</button>
 
-  <a-entity mindar-image-target="targetIndex: 2" id="target2">
-    <a-entity class="fountain"></a-entity>
-  </a-entity>
+  <div id="preview-container">
+    <img id="preview-image" src="" alt="Captured Image">
+    <div id="preview-text">画像を長押しして保存してください</div>
+    <button id="close-btn">閉じる</button>
+  </div>
 
-</a-scene>
+  <a-scene
+    embedded
+    mindar-image="imageTargetSrc: ./bbs.mind; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.001;"
+    renderer="preserveDrawingBuffer: true; alpha: true; colorManagement: true; antialias: true;"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+
+    <a-assets>
+      <img id="heart-img" src="heart.png">
+    </a-assets>
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <a-entity mindar-image-target="targetIndex: 0" id="target0"><a-entity class="fountain"></a-entity></a-entity>
+    <a-entity mindar-image-target="targetIndex: 1" id="target1"><a-entity class="fountain"></a-entity></a-entity>
+    <a-entity mindar-image-target="targetIndex: 2" id="target2"><a-entity class="fountain"></a-entity></a-entity>
+
+  </a-scene>
+
+  <script>
+    const sceneEl = document.querySelector('a-scene');
+    const shootBtn = document.getElementById('shoot');
+    const previewContainer = document.getElementById('preview-container');
+    const previewImage = document.getElementById('preview-image');
+    const closeBtn = document.getElementById('close-btn');
+
+    let arReady = false;
+    let currentObjectUrl = null;
+
+    // ハート生成（成功したコードのロジックを踏襲）
+    function spawnHeart(targetId) {
+      const targetEntity = document.getElementById(targetId);
+      if (!targetEntity || !targetEntity.object3D.visible) return;
+
+      const container = targetEntity.querySelector('.fountain');
+      const heart = document.createElement('a-entity');
+      
+      const size = 0.05 + Math.random() * 0.05;
+      const startX = (Math.random() - 0.5) * 0.1;
+      const startZ = (Math.random() - 0.5) * 0.1;
+
+      heart.setAttribute('geometry', { primitive: 'plane', width: size, height: size });
+      heart.setAttribute('material', { src: '#heart-img', transparent: true, side: 'double', shader: 'flat' });
+      heart.setAttribute('position', `${startX} 0 ${startZ}`);
+      
+      const duration = 2000 + Math.random() * 1000;
+      const spreadX = (Math.random() - 0.5) * 0.8;
+
+      heart.setAttribute('animation__up', {
+        property: 'position', to: `${startX + spreadX * 0.3} 0.3 ${startZ}`, dur: duration * 0.4, easing: 'easeOutQuad'
+      });
+      heart.setAttribute('animation__down', {
+        property: 'position', to: `${startX + spreadX} -1.0 ${startZ}`, delay: duration * 0.4, dur: duration * 0.6, easing: 'easeInQuad'
+      });
+      heart.setAttribute('animation__rot', {
+        property: 'rotation', to: `0 0 ${Math.random() > 0.5 ? 360 : -360}`, dur: duration, easing: 'linear'
+      });
+
+      heart.addEventListener('animationcomplete__down', () => heart.remove());
+      container.appendChild(heart);
+    }
+
+    // 各ターゲットを常時監視
+    setInterval(() => {
+      ['target0', 'target1', 'target2'].forEach(id => spawnHeart(id));
+    }, 300);
+
+    // 撮影機能（ご提示いただいた成功コードの完全移植）
+    sceneEl.addEventListener('arReady', () => {
+      arReady = true;
+      shootBtn.disabled = false;
+      shootBtn.innerText = "撮影する";
+    });
+
+    shootBtn.addEventListener('click', () => {
+      if (!arReady) return;
+      const video = document.querySelector('video');
+      const glCanvas = sceneEl.canvas;
+      const canvas = document.createElement('canvas');
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      const ctx = canvas.getContext('2d');
+
+      const vW = video.videoWidth;
+      const vH = video.videoHeight;
+      const videoAspect = vW / vH;
+      const canvasAspect = canvas.width / canvas.height;
+      
+      let sx, sy, sw, sh;
+      if (videoAspect > canvasAspect) {
+        sw = vH * canvasAspect; sh = vH; sx = (vW - sw) / 2; sy = 0;
+      } else {
+        sw = vW; sh = vW / canvasAspect; sx = 0; sy = (vH - sh) / 2;
+      }
+
+      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(glCanvas, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob((blob) => {
+        if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+        currentObjectUrl = URL.createObjectURL(blob);
+        previewImage.src = currentObjectUrl;
+        previewContainer.style.display = 'flex';
+      }, 'image/png');
+    });
+
+    closeBtn.addEventListener('click', () => {
+      previewContainer.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
