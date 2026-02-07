@@ -10,7 +10,6 @@
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
     #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ff4d6d; color: #fff; display: none; cursor: pointer; }
     #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 20000; flex-direction: column; align-items: center; justify-content: center; }
-    /* プレビュー画像が縦長に収まるように設定 */
     #preview-image { max-width: 90%; max-height: 75%; border: 3px solid white; object-fit: contain; }
     #close-btn { margin-top: 20px; padding: 12px 25px; background: white; border: none; font-weight: bold; cursor: pointer; }
   </style>
@@ -24,17 +23,17 @@
 
   <a-scene 
     embedded 
-    mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no;" 
-    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true;" 
+    mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no; filterMinCF: 0.0001; filterBeta: 0.001;" 
+    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true;" 
     vr-mode-ui="enabled: false">
     
     <a-assets><img id="heart-img" src="heart.png"></a-assets>
     
-    <a-camera position="0 0 0" look-controls="enabled: false">
-        <a-entity id="bbs-container" position="0 -0.5 -2"></a-entity>
-    </a-camera>
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <a-entity mindar-image-target="targetIndex: 0" id="bbs-target"></a-entity>
+    <a-entity mindar-image-target="targetIndex: 0" id="bbs-target">
+      <a-entity id="bbs-container"></a-entity>
+    </a-entity>
   </a-scene>
 
   <script>
@@ -45,59 +44,56 @@
     let isFound = false;
 
     targetEl.addEventListener('targetFound', () => { isFound = true; shootBtn.style.display = 'block'; });
-    targetEl.addEventListener('targetLost', () => { 
-      isFound = false; 
-      shootBtn.style.display = 'none'; 
-      // ターゲットを失っても、ふわふわ浮いている途中のものは消さずに残すと自然よ
-    });
+    targetEl.addEventListener('targetLost', () => { isFound = false; shootBtn.style.display = 'none'; });
 
     function spawnBBSHeart() {
       if (!isFound) return;
       
       const heart = document.createElement('a-entity');
-      const startX = (Math.random() - 0.5) * 2.5; 
-      const startZ = (Math.random() - 0.5) * 1.5;
+      // マーカーの平面に対して左右・前後に散らす
+      const startX = (Math.random() - 0.5) * 1.5; 
+      const startZ = (Math.random() - 0.5) * 0.5;
 
-      heart.setAttribute('geometry', { primitive: 'plane', width: 0.15, height: 0.15 });
-      heart.setAttribute('material', { src: '#heart-img', transparent: true, shader: 'flat' });
-      heart.setAttribute('position', `${startX} -0.5 ${startZ}`);
+      heart.setAttribute('geometry', { primitive: 'plane', width: 0.2, height: 0.2 });
+      heart.setAttribute('material', { src: '#heart-img', transparent: true, shader: 'flat', side: 'double' });
       
-      // スピードをゆっくりにする（dur: 8000ms = 8秒かけて上昇）
+      // 最初はマーカーの位置(0,0,0)付近
+      heart.setAttribute('position', `${startX} 0 ${startZ}`);
+      
+      // スピードをゆっくり上昇（dur: 10000ms = 10秒）
       heart.setAttribute('animation__move', {
-        property: 'position', to: `${startX} 2.0 ${startZ}`, dur: 8000, easing: 'linear'
+        property: 'position', to: `${startX} 2.0 ${startZ}`, dur: 10000, easing: 'linear'
       });
       heart.setAttribute('animation__fade', {
-        property: 'material.opacity', from: 1, to: 0, dur: 8000
+        property: 'material.opacity', from: 1, to: 0, dur: 10000
       });
 
       container.appendChild(heart);
-      setTimeout(() => { if(heart.parentNode) heart.parentNode.removeChild(heart); }, 8000);
+      setTimeout(() => { if(heart.parentNode) heart.parentNode.removeChild(heart); }, 10000);
     }
     
-    setInterval(spawnBBSHeart, 600); // 発生間隔も少しゆったりに
+    setInterval(spawnBBSHeart, 700);
 
     shootBtn.addEventListener('click', () => {
       const video = document.querySelector('video');
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-
       if (!video) return;
 
-      // 撮影時の解像度セット
+      // 縦向きを維持するためにビデオの解像度を使用
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
-      // 1. カメラ映像を描画
+      // 1. カメラ映像を先に描く
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // 2. ★重要：ARの内容を最新状態で強制レンダリング
-      // これをしないと「OBJが写っていない」状態になりやすいわ
+      // 2. A-Frameの描画を最新に更新
       sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
       
-      // 3. ARコンテンツを合成
+      // 3. ARコンテンツを重ねる
       ctx.drawImage(sceneEl.canvas, 0, 0, canvas.width, canvas.height);
 
-      // 4. プレビュー表示
+      // 4. プレビュー
       document.getElementById('preview-image').src = canvas.toDataURL('image/png');
       document.getElementById('preview-container').style.display = 'flex';
     });
