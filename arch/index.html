@@ -1,46 +1,129 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-    <script src="https://unpkg.com/aframe-particle-system-component@1.1.3/dist/aframe-particle-system-component.min.js"></script>
-    <style>
-      body { margin: 0; overflow: hidden; }
-    </style>
-  </head>
-  <body>
-    <a-scene 
-      mindar-image="imageTargetSrc: https://bbs-event-dining.github.io/bbs.github.io/arch/arch_pic.mind;" 
-      color-space="sRGB" 
-      renderer="colorManagement: true, physicallyCorrectLights" 
-      vr-mode-ui="enabled: false" 
-      device-orientation-permission-ui="enabled: false">
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>Arch AR Experience</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+    #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ffb6c1; color: #fff; display: none; text-shadow: 0 1px 2px rgba(0,0,0,0.2); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 20000; flex-direction: column; align-items: center; justify-content: center; }
+    #preview-image { max-width: 90%; max-height: 80%; border: 3px solid white; }
+    #close-btn { margin-top: 20px; padding: 12px 25px; background: white; border: none; font-weight: bold; cursor: pointer; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <button id="shoot">ARを撮影する</button>
+  <div id="preview-container">
+    <img id="preview-image" src="">
+    <button id="close-btn">閉じる</button>
+  </div>
+
+  <a-scene embedded 
+    mindar-image="imageTargetSrc: https://bbs-event-dining.github.io/bbs.github.io/arch/arch_pic.mind;" 
+    renderer="preserveDrawingBuffer: true; alpha: true; colorManagement: true;" 
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+    
+    <a-assets>
+      <a-asset-item id="arch-model" src="https://bbs-event-dining.github.io/bbs.github.io/arch/arch.glb"></a-asset-item>
+      <img id="hanabira-img" src="https://bbs-event-dining.github.io/bbs.github.io/arch/pink_hanabira.png">
+    </a-assets>
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <a-entity mindar-image-target="targetIndex: 0" id="arch-target">
+      <a-gltf-model src="#arch-model" rotation="0 0 0" position="0 0 0" scale="0.5 0.5 0.5"></a-gltf-model>
       
-      <a-assets>
-        <a-asset-item id="archModel" src="https://bbs-event-dining.github.io/bbs.github.io/arch/arch.glb"></a-asset-item>
-        <img id="hanabira" src="https://bbs-event-dining.github.io/bbs.github.io/arch/pink_hanabira.png">
-      </a-assets>
+      <a-entity id="hanabira-container"></a-entity>
+    </a-entity>
+  </a-scene>
 
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+  <script>
+    const sceneEl = document.querySelector('a-scene');
+    const shootBtn = document.getElementById('shoot');
 
-      <a-entity mindar-image-target="targetIndex: 0">
-        <a-gltf-model src="#archModel" rotation="0 0 0" position="0 0 0" scale="0.5 0.5 0.5"></a-gltf-model>
+    // ターゲットを認識したら撮影ボタンを表示
+    sceneEl.addEventListener('renderstart', () => {
+      shootBtn.style.display = 'block';
+    });
 
-        <a-entity 
-          position="0 1 0" 
-          particle-system="
-            texture: #hanabira; 
-            color: #ffffff; 
-            size: 0.1; 
-            velocityValue: 0 -0.5 0; 
-            velocitySpread: 0.2 0 0.2; 
-            accelerationValue: 0 -0.1 0; 
-            particleCount: 50; 
-            maxAge: 3; 
-            blending: 1">
-        </a-entity>
-      </a-entity>
-    </a-scene>
-  </body>
+    // 花びらを降らせる処理
+    function spawnHanabira() {
+      const container = document.getElementById('hanabira-container');
+      const target = document.getElementById('arch-target');
+      
+      // ターゲットが見えている時だけ生成
+      if (!target.getAttribute('visible')) return;
+
+      const leaf = document.createElement('a-entity');
+      
+      // 出現位置：モデルの上部（Y=1.0付近）からランダムに
+      const startX = (Math.random() - 0.5) * 1.5;
+      const startY = 1.0; 
+      const startZ = (Math.random() - 0.5) * 1.0;
+
+      leaf.setAttribute('geometry', { primitive: 'plane', width: 0.1, height: 0.1 });
+      leaf.setAttribute('material', { src: '#hanabira-img', transparent: true, shader: 'flat', side: 'double' });
+      
+      leaf.setAttribute('position', `${startX} ${startY} ${startZ}`);
+      
+      // アニメーション：上から下へ（Y=1.0から-1.0へ）
+      leaf.setAttribute('animation__move', {
+        property: 'position',
+        to: `${startX + (Math.random()-0.5)*0.5} -1.0 ${startZ + (Math.random()-0.5)*0.5}`,
+        dur: 4000 + (Math.random() * 2000),
+        easing: 'linear'
+      });
+
+      // 回転させて舞い落ちる感を出す
+      leaf.setAttribute('animation__rotate', {
+        property: 'rotation',
+        to: `${Math.random()*360} ${Math.random()*360} ${Math.random()*360}`,
+        dur: 5000,
+        loop: true
+      });
+
+      // 消えていくフェードアウト
+      leaf.setAttribute('animation__fade', {
+        property: 'material.opacity',
+        from: 1,
+        to: 0,
+        dur: 4000 + (Math.random() * 2000),
+        easing: 'easeInQuad'
+      });
+
+      container.appendChild(leaf);
+      // 一定時間後に要素を削除
+      setTimeout(() => leaf.remove(), 6000);
+    }
+
+    // 300ミリ秒ごとに花びらを生成
+    setInterval(spawnHanabira, 300);
+
+    // 撮影処理
+    shootBtn.addEventListener('click', () => {
+      const video = document.querySelector('video');
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      
+      // 実写映像を描画
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // ARコンテンツを描画（実写にサイズを合わせる）
+      ctx.drawImage(sceneEl.canvas, 0, 0, canvas.width, canvas.height);
+      
+      document.getElementById('preview-image').src = canvas.toDataURL('image/png');
+      document.getElementById('preview-container').style.display = 'flex';
+    });
+
+    document.getElementById('close-btn').onclick = () => {
+      document.getElementById('preview-container').style.display = 'none';
+    };
+  </script>
+</body>
 </html>
