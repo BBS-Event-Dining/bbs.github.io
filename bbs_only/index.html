@@ -68,21 +68,21 @@
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
-      // 【修正】ビデオの解像度ではなく、実際の「表示サイズ」を取得して縦長を維持
-      const w = video.clientWidth;
-      const h = video.clientHeight;
-      canvas.width = w;
-      canvas.height = h;
+      // 1. 出力サイズを「縦長」に固定（スマホの一般的な比率 9:16 を目安にビデオから切り出す）
+      const outputWidth = video.videoHeight * (window.innerWidth / window.innerHeight);
+      const outputHeight = video.videoHeight;
+      canvas.width = outputWidth;
+      canvas.height = outputHeight;
 
-      // 1. 背景を描画（offsetWidthを使うことで真っ黒を回避）
-      ctx.drawImage(video, 0, 0, w, h);
+      // 2. ビデオの中央をクロップして描画（真っ黒を回避し、縦長を維持）
+      const sx = (video.videoWidth - outputWidth) / 2;
+      ctx.drawImage(video, sx, 0, outputWidth, outputHeight, 0, 0, outputWidth, outputHeight);
 
-      // 2. ARを最新状態でレンダリング
+      // 3. ARコンテンツをレンダリングして重ねる
       sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
-      
-      // 3. ARコンテンツを重ねる
-      ctx.drawImage(sceneCanvas, 0, 0, w, h);
+      ctx.drawImage(sceneCanvas, 0, 0, outputWidth, outputHeight);
 
+      // 4. プレビュー表示
       const previewImg = document.getElementById('preview-image');
       previewImg.src = canvas.toDataURL('image/png');
       document.getElementById('preview-container').style.display = 'flex';
