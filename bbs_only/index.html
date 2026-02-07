@@ -1,75 +1,111 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>BBS Multi AR - Heart Fountain</title>
+  <title>BBS Heart Fountain AR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    #shoot {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000;
+      padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px;
+      border: none; background: #ff4d6d; color: #fff; display: none;
+    }
+  </style>
 </head>
+
 <body>
-  <a-scene mindar-image="imageTargetSrc: ./targets.mind; filterMinCF: 0.0001; filterBeta: 0.001;" 
-           renderer="colorManagement: true, preserveDrawingBuffer: true" vr-mode-ui="enabled: false">
-    
+  <button id="shoot">撮影する</button>
+
+  <a-scene
+    embedded
+    mindar-image="imageTargetSrc: ./bbs_only/targets.mind; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.001;"
+    renderer="preserveDrawingBuffer: true; alpha: true; colorManagement: true; antialias: true;"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+
     <a-assets>
       <img id="heart-img" src="./heart.png">
     </a-assets>
 
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <a-entity mindar-image-target="targetIndex: 0" id="target0"></a-entity>
-    <a-entity mindar-image-target="targetIndex: 1" id="target1"></a-entity>
-    <a-entity mindar-image-target="targetIndex: 2" id="target2"></a-entity>
-    <a-entity mindar-image-target="targetIndex: 3" id="target3"></a-entity>
-    <a-entity mindar-image-target="targetIndex: 4" id="target4"></a-entity>
+    <a-entity mindar-image-target="targetIndex: 0" id="target0"><a-entity class="fountain-root"></a-entity></a-entity>
+    <a-entity mindar-image-target="targetIndex: 1" id="target1"><a-entity class="fountain-root"></a-entity></a-entity>
+    <a-entity mindar-image-target="targetIndex: 2" id="target2"><a-entity class="fountain-root"></a-entity></a-entity>
+    <a-entity mindar-image-target="targetIndex: 3" id="target3"><a-entity class="fountain-root"></a-entity></a-entity>
+    <a-entity mindar-image-target="targetIndex: 4" id="target4"><a-entity class="fountain-root"></a-entity></a-entity>
 
   </a-scene>
 
   <script>
-    // 噴水演出のロジック
+    const sceneEl = document.querySelector('a-scene');
+    const shootBtn = document.getElementById('shoot');
+
     function createHeart(targetEl) {
       if (!targetEl.object3D.visible) return;
 
       const heart = document.createElement('a-entity');
-      const size = 0.03 + Math.random() * 0.05; // 大きさランダム
-      const startX = (Math.random() - 0.5) * 0.1;
-      const startZ = (Math.random() - 0.5) * 0.1;
-
-      heart.setAttribute('geometry', {primitive: 'plane', width: size, height: size});
-      heart.setAttribute('material', {src: '#heart-img', transparent: true, shader: 'flat', side: 'double'});
+      const size = 0.03 + Math.random() * 0.04;
+      const startX = (Math.random() - 0.5) * 0.05;
+      const startZ = (Math.random() - 0.5) * 0.05;
+      
+      heart.setAttribute('geometry', { primitive: 'plane', width: size, height: size });
+      heart.setAttribute('material', { src: '#heart-img', transparent: true, shader: 'flat', side: 'double' });
       heart.setAttribute('position', `${startX} 0 ${startZ}`);
 
-      targetEl.appendChild(heart);
+      targetEl.querySelector('.fountain-root').appendChild(heart);
 
-      // 噴水アニメーション：10cm上に噴き出して放物線で落ちる
-      const peakY = 0.1; // 10cm
-      const dropY = -0.5;
-      const duration = 1500 + Math.random() * 1000;
+      const peakY = 0.1; // 10cm噴き出し
+      const dropY = -0.6;
+      const spreadX = (Math.random() - 0.5) * 0.4;
+      const spreadZ = (Math.random() - 0.5) * 0.4;
+      const duration = 1200 + Math.random() * 800;
 
-      // 上昇から下降へのアニメーション
+      // 上昇アニメーション
       heart.setAttribute('animation__up', {
         property: 'position',
-        to: `${startX + (Math.random() - 0.5) * 0.2} ${peakY} ${startZ}`,
+        to: `${startX + spreadX * 0.3} ${peakY} ${startZ + spreadZ * 0.3}`,
         dur: duration * 0.4,
         easing: 'easeOutQuad'
       });
 
+      // 落下アニメーション（放物線）
       heart.setAttribute('animation__down', {
         property: 'position',
-        to: `${startX + (Math.random() - 0.5) * 0.4} ${dropY} ${startZ}`,
+        to: `${startX + spreadX} ${dropY} ${startZ + spreadZ}`,
         delay: duration * 0.4,
         dur: duration * 0.6,
         easing: 'easeInQuad'
       });
 
+      // 回転
+      heart.setAttribute('animation__rot', {
+        property: 'rotation',
+        to: `0 0 ${Math.random() > 0.5 ? 360 : -360}`,
+        dur: duration,
+        easing: 'linear'
+      });
+
       heart.addEventListener('animationcomplete__down', () => heart.remove());
     }
 
-    // 全ターゲットに対して噴水をループ
+    // 定期的に生成
     setInterval(() => {
       for(let i=0; i<5; i++) {
-        createHeart(document.getElementById(`target${i}`));
+        const target = document.getElementById(`target${i}`);
+        if(target) createHeart(target);
       }
-    }, 200);
+    }, 250);
+
+    sceneEl.addEventListener('arReady', () => {
+      shootBtn.style.display = 'block';
+    });
+    
+    // 撮影処理は前回のロジックを継承可能です
   </script>
 </body>
 </html>
