@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>AR Heart - Fixed View</title>
+  <title>AR Heart - Centralized</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
@@ -20,8 +20,11 @@
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.9); z-index: 20000; flex-direction: column; align-items: center; justify-content: center;
     }
-    #preview-image { max-width: 90%; max-height: 80%; border: 3px solid white; display: block; }
-    #preview-text { color: white; margin-top: 15px; font-weight: bold; text-align: center; }
+    #preview-image { 
+      max-width: 90%; max-height: 80%; border: 3px solid white; 
+      display: block; pointer-events: auto !important; -webkit-touch-callout: default !important;
+    }
+    #preview-text { color: white; margin-top: 15px; font-weight: bold; text-align: center; pointer-events: none; }
     #close-btn { margin-top: 20px; padding: 12px 25px; background: white; border-radius: 5px; border: none; font-weight: bold; }
   </style>
 </head>
@@ -50,8 +53,8 @@
         id="waku-model"
         gltf-model="url(https://bbs-event-dining.github.io/bbs.github.io/heart_waku/heart_waku.glb)" 
         animation-mixer="clip: *; loop: repeat"
-        position="0 -0.4 0" 
-        scale="0.3 0.3 0.3"
+        position="0 -0.25 0" 
+        scale="0.5 0.5 0.5"
         rotation="0 0 0">
       </a-entity>
     </a-entity>
@@ -67,14 +70,12 @@
     let arReady = false;
     let currentObjectUrl = null;
 
-    // AR準備完了時の処理
     sceneEl.addEventListener('arReady', () => {
       arReady = true;
       shootBtn.disabled = false;
       shootBtn.innerText = "撮影する";
     });
 
-    // 撮影ボタンの処理
     shootBtn.addEventListener('click', () => {
       if (!arReady) return;
       const video = document.querySelector('video');
@@ -109,7 +110,6 @@
       }, 'image/png');
     });
 
-    // プレビューを閉じる
     closeBtn.addEventListener('click', () => {
       previewContainer.style.display = 'none';
       if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
@@ -118,4 +118,3 @@
   </script>
 </body>
 </html>
-
