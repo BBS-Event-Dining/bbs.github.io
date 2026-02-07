@@ -2,19 +2,26 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>BBS Heart AR - Multi Target</title>
+  <title>BBS Heart AR</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
+    /* 全画面表示の設定 */
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+    
+    /* 撮影ボタン：成功コードのデザインを踏襲 */
     #shoot {
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000;
       padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px;
       border: none; background: #ff4d6d; color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
     }
+    
+    /* カメラ映像の配置 */
     video { position: absolute; top: 0; left: 0; z-index: -2; }
+    
+    /* プレビュー画面 */
     #preview-container {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(0,0,0,0.9); z-index: 20000; flex-direction: column; align-items: center; justify-content: center;
@@ -30,15 +37,15 @@
   <button id="shoot" disabled>読み込み中...</button>
 
   <div id="preview-container">
-    <img id="preview-image" src="" alt="Captured Image">
+    <img id="preview-image" src="">
     <div id="preview-text">画像を長押しして保存してください</div>
     <button id="close-btn">閉じる</button>
   </div>
 
   <a-scene
     embedded
-    mindar-image="imageTargetSrc: ./bbs.mind; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.001;"
-    renderer="preserveDrawingBuffer: true; alpha: true; colorManagement: true; antialias: true;"
+    mindar-image="imageTargetSrc: ./bbs.mind; uiScanning: yes;"
+    renderer="preserveDrawingBuffer: true; alpha: true; colorManagement: true;"
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
 
@@ -64,45 +71,42 @@
     let arReady = false;
     let currentObjectUrl = null;
 
-    // ハート生成（成功したコードのロジックを踏襲）
+    // ハートを生成する関数
     function spawnHeart(targetId) {
       const targetEntity = document.getElementById(targetId);
-      if (!targetEntity || !targetEntity.object3D.visible) return;
+      // ターゲットが見えている時だけ実行
+      if (!targetEntity || !targetEntity.getAttribute('visible')) return;
 
       const container = targetEntity.querySelector('.fountain');
       const heart = document.createElement('a-entity');
       
-      const size = 0.05 + Math.random() * 0.05;
+      const size = 0.06 + Math.random() * 0.04;
       const startX = (Math.random() - 0.5) * 0.1;
-      const startZ = (Math.random() - 0.5) * 0.1;
 
       heart.setAttribute('geometry', { primitive: 'plane', width: size, height: size });
-      heart.setAttribute('material', { src: '#heart-img', transparent: true, side: 'double', shader: 'flat' });
-      heart.setAttribute('position', `${startX} 0 ${startZ}`);
+      heart.setAttribute('material', { src: '#heart-img', transparent: true, shader: 'flat', side: 'double' });
+      heart.setAttribute('position', `${startX} 0 0`);
       
-      const duration = 2000 + Math.random() * 1000;
-      const spreadX = (Math.random() - 0.5) * 0.8;
+      const duration = 2000;
+      const spreadX = (Math.random() - 0.5) * 0.6;
 
       heart.setAttribute('animation__up', {
-        property: 'position', to: `${startX + spreadX * 0.3} 0.3 ${startZ}`, dur: duration * 0.4, easing: 'easeOutQuad'
+        property: 'position', to: `${startX + spreadX * 0.2} 0.4 0`, dur: duration * 0.4, easing: 'easeOutQuad'
       });
       heart.setAttribute('animation__down', {
-        property: 'position', to: `${startX + spreadX} -1.0 ${startZ}`, delay: duration * 0.4, dur: duration * 0.6, easing: 'easeInQuad'
-      });
-      heart.setAttribute('animation__rot', {
-        property: 'rotation', to: `0 0 ${Math.random() > 0.5 ? 360 : -360}`, dur: duration, easing: 'linear'
+        property: 'position', to: `${startX + spreadX} -1.0 0`, delay: duration * 0.4, dur: duration * 0.6, easing: 'easeInQuad'
       });
 
-      heart.addEventListener('animationcomplete__down', () => heart.remove());
       container.appendChild(heart);
+      setTimeout(() => { if(heart.parentNode) heart.remove(); }, duration);
     }
 
-    // 各ターゲットを常時監視
+    // 常時監視してハートを出す
     setInterval(() => {
       ['target0', 'target1', 'target2'].forEach(id => spawnHeart(id));
-    }, 300);
+    }, 350);
 
-    // 撮影機能（ご提示いただいた成功コードの完全移植）
+    // 成功したコードの撮影ロジックを完全再現
     sceneEl.addEventListener('arReady', () => {
       arReady = true;
       shootBtn.disabled = false;
