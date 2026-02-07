@@ -53,14 +53,11 @@
       shootBtn.style.display = 'block';
     });
 
-    // 【揺れ完全防止】一度認識したらその瞬間の位置で固定し、更新を止める
     targetEl.addEventListener("targetFound", () => {
       if (!isLocked) {
-        // 認識から一瞬（100ms）待って位置が安定した瞬間にロック
         setTimeout(() => {
           targetEl.object3D.matrixAutoUpdate = false;
           isLocked = true;
-          console.log("Position locked to prevent shaking.");
         }, 100);
       }
     });
@@ -68,42 +65,47 @@
     function spawnHanabira() {
       const container = document.getElementById('hanabira-container');
       const target = document.getElementById('arch-target');
-      if (!target.getAttribute('visible')) return;
+      if (!target || !target.getAttribute('visible')) return;
 
       const leaf = document.createElement('a-entity');
-      const startX = (Math.random() - 0.5) * 0.8;
-      // OBJの上部（位置を下げた分、発生位置も少し調整可）
-      const startY = 0.3; 
-      const startZ = (Math.random() - 0.5) * 0.5;
+      const startX = (Math.random() - 0.5) * 1.0;
+      const startY = 0.4; // 少し高い位置から
+      const startZ = (Math.random() - 0.5) * 0.6;
 
-      leaf.setAttribute('geometry', { primitive: 'plane', width: 0.1, height: 0.1 });
+      // 【修正】サイズを0.04（以前の半分以下）に設定
+      leaf.setAttribute('geometry', { primitive: 'plane', width: 0.04, height: 0.04 });
       leaf.setAttribute('material', { src: '#hanabira-img', transparent: true, shader: 'flat', side: 'double' });
       leaf.setAttribute('position', `${startX} ${startY} ${startZ}`);
       
+      // 【修正】落下速度を少しアップ＆消滅時間を短縮
+      const fallDur = 2500 + (Math.random() * 1000); 
+
       leaf.setAttribute('animation__move', {
         property: 'position',
-        to: `${startX + (Math.random()-0.5)*0.3} -1.2 ${startZ + (Math.random()-0.5)*0.3}`,
-        dur: 4000 + (Math.random() * 2000),
+        to: `${startX + (Math.random()-0.5)*0.3} -0.8 ${startZ + (Math.random()-0.5)*0.3}`,
+        dur: fallDur,
         easing: 'linear'
       });
 
       leaf.setAttribute('animation__rotate', {
         property: 'rotation',
         to: `${Math.random()*360} ${Math.random()*360} ${Math.random()*360}`,
-        dur: 5000,
+        dur: 3000,
         loop: true
       });
 
       leaf.setAttribute('animation__fade', {
         property: 'material.opacity',
-        from: 1, to: 0, dur: 4000 + (Math.random() * 2000), easing: 'easeInQuad'
+        from: 1, to: 0, dur: fallDur, easing: 'easeInQuad'
       });
 
       container.appendChild(leaf);
-      setTimeout(() => leaf.remove(), 6000);
+      // 【修正】3.5秒で完全に削除
+      setTimeout(() => leaf.remove(), 3500);
     }
 
-    setInterval(spawnHanabira, 300);
+    // 【修正】生成間隔を100ms（3倍の頻度）に変更
+    setInterval(spawnHanabira, 100);
 
     shootBtn.addEventListener('click', () => {
       sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
