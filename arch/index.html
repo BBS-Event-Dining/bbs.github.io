@@ -38,7 +38,7 @@
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
     <a-entity mindar-image-target="targetIndex: 0" id="arch-target">
-      <a-gltf-model src="#arch-model" rotation="0 0 0" position="0 -0.4 0" scale="0.5 0.5 0.5"></a-gltf-model>
+      <a-gltf-model src="#arch-model" rotation="0 0 0" position="0 -0.4 -1" scale="0.5 0.5 0.5"></a-gltf-model>
       <a-entity id="hanabira-container"></a-entity>
     </a-entity>
   </a-scene>
@@ -68,21 +68,20 @@
       if (!target || !target.getAttribute('visible')) return;
 
       const leaf = document.createElement('a-entity');
-      const startX = (Math.random() - 0.5) * 1.0;
-      const startY = 0.4; // 少し高い位置から
-      const startZ = (Math.random() - 0.5) * 0.6;
+      const startX = (Math.random() - 0.5) * 1.5;
+      const startY = 0.5;
+      // 【調整】OBJの位置に合わせて花びらも少し奥（-0.5～-1.5の間）で降るように
+      const startZ = -1.0 + (Math.random() - 0.5) * 1.0;
 
-      // 【修正】サイズを0.04（以前の半分以下）に設定
       leaf.setAttribute('geometry', { primitive: 'plane', width: 0.04, height: 0.04 });
       leaf.setAttribute('material', { src: '#hanabira-img', transparent: true, shader: 'flat', side: 'double' });
       leaf.setAttribute('position', `${startX} ${startY} ${startZ}`);
       
-      // 【修正】落下速度を少しアップ＆消滅時間を短縮
       const fallDur = 2500 + (Math.random() * 1000); 
 
       leaf.setAttribute('animation__move', {
         property: 'position',
-        to: `${startX + (Math.random()-0.5)*0.3} -0.8 ${startZ + (Math.random()-0.5)*0.3}`,
+        to: `${startX + (Math.random()-0.5)*0.5} -1.0 ${startZ + (Math.random()-0.5)*0.5}`,
         dur: fallDur,
         easing: 'linear'
       });
@@ -100,11 +99,9 @@
       });
 
       container.appendChild(leaf);
-      // 【修正】3.5秒で完全に削除
       setTimeout(() => leaf.remove(), 3500);
     }
 
-    // 【修正】生成間隔を100ms（3倍の頻度）に変更
     setInterval(spawnHanabira, 100);
 
     shootBtn.addEventListener('click', () => {
