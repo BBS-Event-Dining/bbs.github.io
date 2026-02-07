@@ -8,6 +8,9 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
   <style>
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+    /* ビデオ要素が背面に隠れないよう調整 */
+    video { position: absolute; top: 0; left: 0; z-index: -1; }
+    
     #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ff4d6d; color: #fff; display: none; cursor: pointer; }
     #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 99999; flex-direction: column; align-items: center; justify-content: center; }
     #preview-image { width: auto; height: 85%; max-width: 95%; border: 2px solid #fff; object-fit: contain; }
@@ -68,23 +71,26 @@
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
-      // 1. 出力サイズを「縦長」に固定（スマホの一般的な比率 9:16 を目安にビデオから切り出す）
-      const outputWidth = video.videoHeight * (window.innerWidth / window.innerHeight);
-      const outputHeight = video.videoHeight;
-      canvas.width = outputWidth;
-      canvas.height = outputHeight;
+      // 撮影時のみ縦長（9:16）の比率で計算
+      const videoAspect = video.videoWidth / video.videoHeight;
+      const screenAspect = window.innerWidth / window.innerHeight;
 
-      // 2. ビデオの中央をクロップして描画（真っ黒を回避し、縦長を維持）
-      const sx = (video.videoWidth - outputWidth) / 2;
-      ctx.drawImage(video, sx, 0, outputWidth, outputHeight, 0, 0, outputWidth, outputHeight);
+      // 出力サイズは画面の比率に合わせる
+      canvas.width = video.videoHeight * screenAspect;
+      canvas.height = video.videoHeight;
 
-      // 3. ARコンテンツをレンダリングして重ねる
+      // ビデオの中央を切り抜くための開始位置(sx)
+      const sx = (video.videoWidth - canvas.width) / 2;
+
+      // 1. 背景（カメラ映像）を描画
+      ctx.drawImage(video, sx, 0, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
+
+      // 2. ARコンテンツを重ねる
       sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
-      ctx.drawImage(sceneCanvas, 0, 0, outputWidth, outputHeight);
+      ctx.drawImage(sceneCanvas, 0, 0, canvas.width, canvas.height);
 
-      // 4. プレビュー表示
-      const previewImg = document.getElementById('preview-image');
-      previewImg.src = canvas.toDataURL('image/png');
+      // 3. プレビュー表示
+      document.getElementById('preview-image').src = canvas.toDataURL('image/png');
       document.getElementById('preview-container').style.display = 'flex';
     });
 
