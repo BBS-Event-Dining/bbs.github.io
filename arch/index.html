@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>AR Arch - Stable View</title>
+  <title>AR Arch - Adjusted Position</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
@@ -38,7 +38,6 @@
 
   <a-scene
     embedded
-    /* filterMinCF と filterBeta で震えを抑制 */
     mindar-image="imageTargetSrc: arch_pic.mind; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.001;"
     renderer="preserveDrawingBuffer: true; alpha: true; colorManagement: true; antialias: true;"
     vr-mode-ui="enabled: false"
@@ -55,7 +54,7 @@
         id="arch-model"
         gltf-model="url(https://bbs-event-dining.github.io/bbs.github.io/arch/arch.glb)" 
         animation-mixer="clip: *; loop: repeat"
-        position="0 -0.35 0" 
+        position="0 -0.45 -0.2" 
         scale="0.5 0.5 0.5">
       </a-entity>
       
@@ -80,16 +79,16 @@
 
       const petal = document.createElement('a-entity');
       const startX = (Math.random() - 0.5) * 0.8; 
-      // アーチを下げた分、花びらの発生点も少し調整（0.15に）
-      const startY = 0.15; 
-      const startZ = (Math.random() - 0.5) * 0.3;
+      // モデルの位置に合わせて花びらの発生点も調整
+      const startY = 0.05; 
+      const startZ = -0.2 + (Math.random() - 0.5) * 0.3;
       const size = 0.04 + Math.random() * 0.04;
 
       petal.setAttribute('geometry', { primitive: 'plane', width: size, height: size });
       petal.setAttribute('material', { src: '#petal-img', transparent: true, side: 'double', shader: 'flat' });
       petal.setAttribute('position', `${startX} ${startY} ${startZ}`);
       
-      const endY = -0.7;
+      const endY = -0.8;
       const duration = 2500 + Math.random() * 2000;
       
       petal.setAttribute('animation__move', {
@@ -148,16 +147,4 @@
       canvas.toBlob((blob) => {
         if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
         currentObjectUrl = URL.createObjectURL(blob);
-        previewImage.src = currentObjectUrl;
-        previewContainer.style.display = 'flex';
-      }, 'image/png');
-    });
-
-    closeBtn.addEventListener('click', () => {
-      previewContainer.style.display = 'none';
-      if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
-      previewImage.src = "";
-    });
-  </script>
-</body>
-</html>
+        previewImage
