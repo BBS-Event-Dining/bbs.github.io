@@ -7,11 +7,10 @@
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
   <style>
-    /* スタイルはArch用と同じ */
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
     #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ff4d6d; color: #fff; display: none; }
     #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 20000; flex-direction: column; align-items: center; justify-content: center; }
-    #preview-image { max-width: 90%; max-height: 80%; border: 3px solid white; }
+    #preview-image { max-width: 90%; max-height: 80%; border: 3px solid white; object-fit: contain; }
     #close-btn { margin-top: 20px; padding: 12px 25px; background: white; border: none; font-weight: bold; }
   </style>
 </head>
@@ -21,7 +20,7 @@
     <img id="preview-image" src=""><button id="close-btn">閉じる</button>
   </div>
 
-  <a-scene embedded mindar-image="imageTargetSrc: ./bbs.mind;" renderer="preserveDrawingBuffer: true; alpha: true;" vr-mode-ui="enabled: false">
+  <a-scene embedded mindar-image="imageTargetSrc: ./bbs.mind; filterMinCF: 0.001; filterBeta: 1000;" renderer="preserveDrawingBuffer: true; alpha: true; colorManagement: true;" vr-mode-ui="enabled: false">
     <a-assets><img id="heart-img" src="heart.png"></a-assets>
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
@@ -33,46 +32,67 @@
   <script>
     const sceneEl = document.querySelector('a-scene');
     const shootBtn = document.getElementById('shoot');
-    sceneEl.addEventListener('renderstart', () => { shootBtn.style.display = 'block'; });
+    const targetEl = document.getElementById('bbs-target');
+    let isFound = false;
+
+    // ターゲット検知の安定化
+    targetEl.addEventListener('targetFound', () => { isFound = true; shootBtn.style.display = 'block'; });
+    targetEl.addEventListener('targetLost', () => { 
+      isFound = false; 
+      shootBtn.style.display = 'none';
+      document.getElementById('bbs-container').innerHTML = ''; // ターゲットを失ったらハートを即消去
+    });
 
     function spawnBBSHeart() {
+      if (!isFound) return;
       const container = document.getElementById('bbs-container');
-      const target = document.getElementById('bbs-target');
-      if (!target.getAttribute('visible')) return;
 
       const heart = document.createElement('a-entity');
-      // 起点を広く（左右前後50cmの範囲）
-      const startX = (Math.random() - 0.5) * 0.5;
-      const startZ = (Math.random() - 0.5) * 0.5;
+      // 出る範囲を広範囲に（左右1.0m、前後0.8mの範囲）
+      const startX = (Math.random() - 0.5) * 2.0; 
+      const startZ = (Math.random() - 0.5) * 1.6;
 
-      heart.setAttribute('geometry', { primitive: 'plane', width: 0.07, height: 0.07 });
+      heart.setAttribute('geometry', { primitive: 'plane', width: 0.1, height: 0.1 });
       heart.setAttribute('material', { src: '#heart-img', transparent: true, shader: 'flat' });
       
-      // 地面(0)から空(2.0m)へ上昇
       heart.setAttribute('position', `${startX} 0 ${startZ}`);
+      
+      // ゆっくり上昇させる（durを5000ms=5秒に変更）
       heart.setAttribute('animation__move', {
-        property: 'position', to: `${startX + (Math.random()-0.5)*0.3} 2.0 ${startZ}`, dur: 3000, easing: 'easeOutQuad'
+        property: 'position', 
+        to: `${startX + (Math.random()-0.5)*0.2} 1.5 ${startZ}`, 
+        dur: 5000, 
+        easing: 'linear'
       });
       heart.setAttribute('animation__fade', {
-        property: 'material.opacity', from: 1, to: 0, dur: 3000
+        property: 'material.opacity', from: 1, to: 0, dur: 5000
       });
 
       container.appendChild(heart);
-      setTimeout(() => heart.remove(), 3000);
+      setTimeout(() => { if(heart.parentNode) heart.parentNode.removeChild(heart); }, 5000);
     }
-    setInterval(spawnBBSHeart, 200);
+    
+    setInterval(spawnBBSHeart, 400); // 生成間隔も少しゆったりに
 
-    // 撮影処理（Arch用と同じ）
+    // 撮影処理（歪み修正版）
     shootBtn.addEventListener('click', () => {
-      sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+      const video = document.querySelector('video');
       const canvas = document.createElement('canvas');
-      canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+      
+      // ビデオの実解像度を基準にする（これで伸びなくなるわ）
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(document.querySelector('video'), 0, 0, canvas.width, canvas.height);
+      // 1. 背景ビデオを描画
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // 2. AR（A-FrameのCanvas）を重ねる
       ctx.drawImage(sceneEl.canvas, 0, 0, canvas.width, canvas.height);
+      
       document.getElementById('preview-image').src = canvas.toDataURL('image/png');
       document.getElementById('preview-container').style.display = 'flex';
     });
+    
     document.getElementById('close-btn').onclick = () => document.getElementById('preview-container').style.display = 'none';
   </script>
 </body>
