@@ -10,10 +10,10 @@
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
     #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ff4d6d; color: #fff; display: none; cursor: pointer; }
     
-    /* 撮影後のプレビュー画面（縦長に固定） */
+    /* 撮影後のプレビュー画面（縦長表示を強制） */
     #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 99999; flex-direction: column; align-items: center; justify-content: center; }
-    #preview-image { width: auto; height: 80%; max-width: 95%; border: 2px solid #fff; object-fit: contain; }
-    #close-btn { margin-top: 15px; padding: 10px 30px; background: #fff; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; }
+    #preview-image { width: auto; height: 85%; max-width: 95%; border: 2px solid #fff; object-fit: contain; }
+    #close-btn { margin-top: 10px; padding: 10px 40px; background: #fff; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -26,11 +26,10 @@
   <a-scene 
     embedded 
     mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no; filterMinCF: 0.0001; filterBeta: 0.001;" 
-    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true;" 
+    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true;" 
     vr-mode-ui="enabled: false">
     
     <a-assets><img id="heart-img" src="heart.png"></a-assets>
-    
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
     <a-entity mindar-image-target="targetIndex: 0" id="bbs-target">
@@ -58,7 +57,6 @@
       heart.setAttribute('material', { src: '#heart-img', transparent: true, shader: 'flat', side: 'double' });
       heart.setAttribute('position', `${startX} 0 ${startZ}`);
       
-      // スピードをゆっくり上昇（10秒）
       heart.setAttribute('animation__move', {
         property: 'position', to: `${startX} 2.0 ${startZ}`, dur: 10000, easing: 'linear'
       });
@@ -72,7 +70,6 @@
     setInterval(spawnBBSHeart, 700);
 
     shootBtn.addEventListener('click', () => {
-      // 確実にビデオ要素を取得（Mind-ARが作ったもの）
       const video = document.querySelector('video');
       const sceneCanvas = sceneEl.canvas;
       if (!video || !sceneCanvas) return;
@@ -80,20 +77,22 @@
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
-      // キャンバスサイズをビデオの解像度（縦向き基準）に合わせる
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      // 縦向きの解像度を確保するために、ビデオの本来のサイズを使用
+      const w = video.videoWidth;
+      const h = video.videoHeight;
+      canvas.width = w;
+      canvas.height = h;
 
-      // 1. 背景のカメラ映像を描画
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // 1. 背景（カメラ映像）の描画
+      ctx.drawImage(video, 0, 0, w, h);
 
-      // 2. AR側のレンダリングを最新状態に更新
+      // 2. ARコンテンツ（ハート等）のレンダリングを最新化して重ねる
       sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
       
-      // 3. ARのCanvas（ハートなど）を上に重ねる
-      ctx.drawImage(sceneCanvas, 0, 0, canvas.width, canvas.height);
+      // ARのCanvasは画面表示サイズになっているので、ビデオの解像度に引き伸ばして描画
+      ctx.drawImage(sceneCanvas, 0, 0, w, h);
 
-      // 4. 結果を表示
+      // 3. プレビュー表示
       const previewImg = document.getElementById('preview-image');
       previewImg.src = canvas.toDataURL('image/png');
       document.getElementById('preview-container').style.display = 'flex';
