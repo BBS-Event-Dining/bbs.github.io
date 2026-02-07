@@ -9,9 +9,11 @@
   <style>
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
     #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ff4d6d; color: #fff; display: none; cursor: pointer; }
-    #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 20000; flex-direction: column; align-items: center; justify-content: center; }
-    #preview-image { max-width: 90%; max-height: 75%; border: 3px solid white; object-fit: contain; }
-    #close-btn { margin-top: 20px; padding: 12px 25px; background: white; border: none; font-weight: bold; cursor: pointer; }
+    
+    /* 撮影後のプレビュー画面（縦長に固定） */
+    #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 99999; flex-direction: column; align-items: center; justify-content: center; }
+    #preview-image { width: auto; height: 80%; max-width: 95%; border: 2px solid #fff; object-fit: contain; }
+    #close-btn { margin-top: 15px; padding: 10px 30px; background: #fff; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -48,19 +50,15 @@
 
     function spawnBBSHeart() {
       if (!isFound) return;
-      
       const heart = document.createElement('a-entity');
-      // マーカーの平面に対して左右・前後に散らす
       const startX = (Math.random() - 0.5) * 1.5; 
       const startZ = (Math.random() - 0.5) * 0.5;
 
       heart.setAttribute('geometry', { primitive: 'plane', width: 0.2, height: 0.2 });
       heart.setAttribute('material', { src: '#heart-img', transparent: true, shader: 'flat', side: 'double' });
-      
-      // 最初はマーカーの位置(0,0,0)付近
       heart.setAttribute('position', `${startX} 0 ${startZ}`);
       
-      // スピードをゆっくり上昇（dur: 10000ms = 10秒）
+      // スピードをゆっくり上昇（10秒）
       heart.setAttribute('animation__move', {
         property: 'position', to: `${startX} 2.0 ${startZ}`, dur: 10000, easing: 'linear'
       });
@@ -71,30 +69,33 @@
       container.appendChild(heart);
       setTimeout(() => { if(heart.parentNode) heart.parentNode.removeChild(heart); }, 10000);
     }
-    
     setInterval(spawnBBSHeart, 700);
 
     shootBtn.addEventListener('click', () => {
+      // 確実にビデオ要素を取得（Mind-ARが作ったもの）
       const video = document.querySelector('video');
+      const sceneCanvas = sceneEl.canvas;
+      if (!video || !sceneCanvas) return;
+
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      if (!video) return;
 
-      // 縦向きを維持するためにビデオの解像度を使用
+      // キャンバスサイズをビデオの解像度（縦向き基準）に合わせる
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
-      // 1. カメラ映像を先に描く
+      // 1. 背景のカメラ映像を描画
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // 2. A-Frameの描画を最新に更新
+      // 2. AR側のレンダリングを最新状態に更新
       sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
       
-      // 3. ARコンテンツを重ねる
-      ctx.drawImage(sceneEl.canvas, 0, 0, canvas.width, canvas.height);
+      // 3. ARのCanvas（ハートなど）を上に重ねる
+      ctx.drawImage(sceneCanvas, 0, 0, canvas.width, canvas.height);
 
-      // 4. プレビュー
-      document.getElementById('preview-image').src = canvas.toDataURL('image/png');
+      // 4. 結果を表示
+      const previewImg = document.getElementById('preview-image');
+      previewImg.src = canvas.toDataURL('image/png');
       document.getElementById('preview-container').style.display = 'flex';
     });
 
