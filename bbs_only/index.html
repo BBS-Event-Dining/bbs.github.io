@@ -8,16 +8,19 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
     #shoot {
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000;
       padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px;
-      border: none; background: #ff4d6d; color: #fff; display: none;
+      border: none; background: #ff4d6d; color: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+      display: none; /* AR準備完了まで非表示 */
     }
+    video { position: absolute; top: 0; left: 0; z-index: -2; }
   </style>
 </head>
 
 <body>
+
   <button id="shoot">撮影する</button>
 
   <a-scene
@@ -33,11 +36,11 @@
 
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <a-entity mindar-image-target="targetIndex: 0" id="target0"><a-entity class="fountain-root"></a-entity></a-entity>
-    <a-entity mindar-image-target="targetIndex: 1" id="target1"><a-entity class="fountain-root"></a-entity></a-entity>
-    <a-entity mindar-image-target="targetIndex: 2" id="target2"><a-entity class="fountain-root"></a-entity></a-entity>
-    <a-entity mindar-image-target="targetIndex: 3" id="target3"><a-entity class="fountain-root"></a-entity></a-entity>
-    <a-entity mindar-image-target="targetIndex: 4" id="target4"><a-entity class="fountain-root"></a-entity></a-entity>
+    <a-entity mindar-image-target="targetIndex: 0" id="target0"><a-entity class="fountain-container"></a-entity></a-entity>
+    <a-entity mindar-image-target="targetIndex: 1" id="target1"><a-entity class="fountain-container"></a-entity></a-entity>
+    <a-entity mindar-image-target="targetIndex: 2" id="target2"><a-entity class="fountain-container"></a-entity></a-entity>
+    <a-entity mindar-image-target="targetIndex: 3" id="target3"><a-entity class="fountain-container"></a-entity></a-entity>
+    <a-entity mindar-image-target="targetIndex: 4" id="target4"><a-entity class="fountain-container"></a-entity></a-entity>
 
   </a-scene>
 
@@ -45,10 +48,14 @@
     const sceneEl = document.querySelector('a-scene');
     const shootBtn = document.getElementById('shoot');
 
+    // ハートを1つ生成して噴水のように動かす関数
     function createHeart(targetEl) {
+      // マーカーが見えていない時は生成しない
       if (!targetEl.object3D.visible) return;
 
       const heart = document.createElement('a-entity');
+      
+      // サイズと初期位置の微細なランダム化
       const size = 0.03 + Math.random() * 0.04;
       const startX = (Math.random() - 0.5) * 0.05;
       const startZ = (Math.random() - 0.5) * 0.05;
@@ -57,15 +64,17 @@
       heart.setAttribute('material', { src: '#heart-img', transparent: true, shader: 'flat', side: 'double' });
       heart.setAttribute('position', `${startX} 0 ${startZ}`);
 
-      targetEl.querySelector('.fountain-root').appendChild(heart);
+      // ターゲットの子要素として追加
+      targetEl.querySelector('.fountain-container').appendChild(heart);
 
-      const peakY = 0.1; // 10cm噴き出し
-      const dropY = -0.6;
-      const spreadX = (Math.random() - 0.5) * 0.4;
-      const spreadZ = (Math.random() - 0.5) * 0.4;
-      const duration = 1200 + Math.random() * 800;
+      // アニメーション設定
+      const peakY = 0.1; // 10cm上昇
+      const dropY = -0.6; // 60cm落下
+      const spreadX = (Math.random() - 0.5) * 0.5; // 横への散らばり
+      const spreadZ = (Math.random() - 0.5) * 0.5;
+      const duration = 1500 + Math.random() * 1000;
 
-      // 上昇アニメーション
+      // 1. 噴き上がる動き
       heart.setAttribute('animation__up', {
         property: 'position',
         to: `${startX + spreadX * 0.3} ${peakY} ${startZ + spreadZ * 0.3}`,
@@ -73,7 +82,7 @@
         easing: 'easeOutQuad'
       });
 
-      // 落下アニメーション（放物線）
+      // 2. 落ちる動き（放物線）
       heart.setAttribute('animation__down', {
         property: 'position',
         to: `${startX + spreadX} ${dropY} ${startZ + spreadZ}`,
@@ -82,7 +91,7 @@
         easing: 'easeInQuad'
       });
 
-      // 回転
+      // 3. 回転
       heart.setAttribute('animation__rot', {
         property: 'rotation',
         to: `0 0 ${Math.random() > 0.5 ? 360 : -360}`,
@@ -90,22 +99,26 @@
         easing: 'linear'
       });
 
-      heart.addEventListener('animationcomplete__down', () => heart.remove());
+      // アニメーションが終わったら消去
+      heart.addEventListener('animationcomplete__down', () => {
+        heart.remove();
+      });
     }
 
-    // 定期的に生成
+    // 200msごとに全てのターゲットに対して生成を試みる
     setInterval(() => {
       for(let i=0; i<5; i++) {
         const target = document.getElementById(`target${i}`);
         if(target) createHeart(target);
       }
-    }, 250);
+    }, 200);
 
+    // AR準備完了でボタン表示
     sceneEl.addEventListener('arReady', () => {
       shootBtn.style.display = 'block';
     });
-    
-    // 撮影処理は前回のロジックを継承可能です
+
+    // ※撮影（シャッター）機能が必要な場合は、以前のcanvas描画ロジックをここに追記可能です
   </script>
 </body>
 </html>
