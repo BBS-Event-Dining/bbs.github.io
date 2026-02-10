@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>BBS AR - Scale 1.2 (Base 1.0)</title>
+  <title>BBS AR - Enhanced Shadows</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
@@ -33,7 +33,7 @@
 
   <a-scene 
     mindar-image="imageTargetSrc: chirashi.mind; autoStart: true; uiLoading: yes; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 1000; missTolerance: 60; warmupTolerance: 10;" 
-    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true;" 
+    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true; shadowMapEnabled: true;" 
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
     
@@ -43,16 +43,33 @@
 
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <a-entity light="type: ambient; intensity: 1.2"></a-entity>
-    <a-entity light="type: directional; position: 0 1 1; intensity: 0.5"></a-entity>
+    <a-entity light="type: ambient; intensity: 0.6"></a-entity>
+    
+    <a-entity light="type: directional; 
+                   intensity: 0.8; 
+                   castShadow: true; 
+                   shadowMapHeight: 2048; 
+                   shadowMapWidth: 2048; 
+                   shadowCameraLeft: -3; 
+                   shadowCameraRight: 3; 
+                   shadowCameraBottom: -3; 
+                   shadowCameraTop: 3;
+                   shadowBias: -0.001;" 
+              position="2 4 2"></a-entity>
 
     <a-entity mindar-image-target="targetIndex: 0" id="bbs-target">
       <a-gltf-model 
         src="#box-model" 
-        position="0 0 0" 
+        position="0 0 0.1" 
         rotation="0 0 0" 
-        scale="1.2 1.2 1.2">
+        scale="1.8 1.8 1.8"
+        shadow="cast: true; receive: true">
       </a-gltf-model>
+
+      <a-plane position="0 0 0" rotation="-90 0 0" width="5" height="5" 
+               shadow="receive: true" 
+               material="shadowOnly: true; opacity: 0.5;">
+      </a-plane>
     </a-entity>
   </a-scene>
 
