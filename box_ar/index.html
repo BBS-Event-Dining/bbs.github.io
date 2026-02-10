@@ -2,16 +2,14 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>BBS GLB AR Optimized - Stable V3</title>
+  <title>BBS GLB AR Optimized - stable_v4</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
   <style>
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent !important; }
     video { position: absolute !important; z-index: -1 !important; }
-    /* 描画のブレを抑えるための最適化 */
     .a-canvas { position: absolute !important; z-index: 1 !important; background: transparent !important; image-rendering: -webkit-optimize-contrast; }
-    
     #shoot { 
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
       z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; 
@@ -35,7 +33,7 @@
   </div>
 
   <a-scene 
-    mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no; filterMinCF:0.00001; filterBeta: 1000; warmupTolerance: 12; missTolerance: 30;" 
+    mindar-image="imageTargetSrc: ./BOX_marker.mind; autoStart: true; uiLoading: no; uiScanning: no; filterMinCF:0.00001; filterBeta: 1000; warmupTolerance: 10; missTolerance: 20;" 
     renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true; precision: high; logarithmicDepthBuffer: true;" 
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
@@ -55,7 +53,7 @@
         src="#box-model" 
         position="0 0 -0.5" 
         rotation="0 0 0" 
-        scale="0.05 0.05 0.05">
+        scale="1 1 1">
       </a-gltf-model>
     </a-entity>
   </a-scene>
