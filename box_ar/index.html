@@ -33,8 +33,8 @@
 
   <a-scene 
     mindar-image="imageTargetSrc: chirashi.mind; autoStart: true; uiLoading: yes; uiScanning: yes; 
-                  filterMinCF: 0.001; filterBeta: 10; missTolerance: 60; warmupTolerance: 10;" 
-    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true; shadowMapEnabled: true;" 
+                  filterMinCF: 0.0001; filterBeta: 0.001; missTolerance: 100; warmupTolerance: 5;" 
+    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true; logarithmicDepthBuffer: true; precision: high;" 
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
     
@@ -42,10 +42,10 @@
       <a-asset-item id="box-model" src="box_toAR.glb"></a-asset-item>
     </a-assets>
 
-    <a-camera position="0 0 0" look-controls="enabled: false" near="0.1" far="100"></a-camera>
+    <a-camera position="0 0 0" look-controls="enabled: false" near="0.01" far="100"></a-camera>
 
-    <a-entity light="type: ambient; intensity: 0.7"></a-entity>
-    <a-entity light="type: directional; intensity: 0.8; castShadow: true; shadowMapHeight: 2048; shadowMapWidth: 2048; shadowCameraLeft: -3; shadowCameraRight: 3; shadowCameraBottom: -3; shadowCameraTop: 3; shadowBias: -0.001;" position="2 4 2"></a-entity>
+    <a-entity light="type: ambient; intensity: 0.8"></a-entity>
+    <a-entity light="type: directional; intensity: 0.6; castShadow: true; shadowMapHeight: 2048; shadowMapWidth: 2048;" position="1 2 1"></a-entity>
 
     <a-entity mindar-image-target="targetIndex: 0" id="bbs-target">
       <a-gltf-model 
@@ -79,7 +79,7 @@
 
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      // キャプチャ直前に描画を強制
+      // キャプチャ直前に最新の行列計算を強制
       sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
 
       const sceneWidth = sceneCanvas.clientWidth;
