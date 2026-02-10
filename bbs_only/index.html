@@ -9,27 +9,30 @@
   <style>
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
     
-    /* 1. カメラ映像を最背面に固定 */
-    video {
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: -1;
+    /* UI要素の配置 */
+    #shoot { 
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
+      z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; 
+      border-radius: 50px; border: none; background: #ff4d6d; color: #fff; 
+      display: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
     }
 
-    /* 2. ARキャンバスをその上に配置 */
-    .a-canvas {
-      z-index: 1;
+    #preview-container { 
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background: rgba(0,0,0,0.9); z-index: 99999; flex-direction: column; 
+      align-items: center; justify-content: center; 
     }
 
-    #shoot { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; border-radius: 50px; border: none; background: #ff4d6d; color: #fff; display: none; cursor: pointer; }
-    #preview-container { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 99999; flex-direction: column; align-items: center; justify-content: center; }
-    #preview-image { width: auto; height: 85%; max-width: 95%; border: 2px solid #fff; object-fit: contain; }
-    #close-btn { margin-top: 10px; padding: 10px 40px; background: #fff; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; }
+    #preview-image { width: auto; height: 80%; max-width: 90%; border: 2px solid #fff; object-fit: contain; }
+    #close-btn { margin-top: 15px; padding: 12px 40px; background: #fff; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; }
+    
+    /* A-Frameのキャンバス設定 */
+    .a-canvas { z-index: 1; }
   </style>
 </head>
 <body>
   <button id="shoot">撮影する</button>
+  
   <div id="preview-container">
     <img id="preview-image" src="">
     <button id="close-btn">閉じる</button>
@@ -37,12 +40,14 @@
 
   <a-scene 
     mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no;" 
-    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true;" 
+    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true;" 
     vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false"
-    style="background: none;">
+    device-orientation-permission-ui="enabled: false">
     
-    <a-assets><img id="heart-img" src="heart.png"></a-assets>
+    <a-assets>
+      <img id="heart-img" src="heart.png">
+    </a-assets>
+
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
     <a-entity mindar-image-target="targetIndex: 0" id="bbs-target">
@@ -57,6 +62,7 @@
     const container = document.getElementById('bbs-container');
     let isFound = false;
 
+    // ターゲット検知のハンドリング
     targetEl.addEventListener('targetFound', () => { 
       isFound = true; 
       shootBtn.style.display = 'block'; 
@@ -66,21 +72,25 @@
       shootBtn.style.display = 'none'; 
     });
 
+    // ハート生成ロジック
     function spawnBBSHeart() {
       if (!isFound) return;
       const heart = document.createElement('a-entity');
       const startX = (Math.random() - 0.5) * 1.5; 
       const startZ = (Math.random() - 0.5) * 0.5;
+      
       heart.setAttribute('geometry', { primitive: 'plane', width: 0.2, height: 0.2 });
       heart.setAttribute('material', { src: '#heart-img', transparent: true, shader: 'flat', side: 'double' });
       heart.setAttribute('position', `${startX} 0 ${startZ}`);
       heart.setAttribute('animation__move', { property: 'position', to: `${startX} 2.0 ${startZ}`, dur: 10000, easing: 'linear' });
       heart.setAttribute('animation__fade', { property: 'material.opacity', from: 1, to: 0, dur: 10000 });
+      
       container.appendChild(heart);
       setTimeout(() => { if(heart.parentNode) heart.parentNode.removeChild(heart); }, 10000);
     }
     setInterval(spawnBBSHeart, 700);
 
+    // 撮影処理
     shootBtn.addEventListener('click', () => {
       const video = document.querySelector('video');
       const sceneCanvas = sceneEl.canvas;
@@ -89,25 +99,24 @@
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
-      const screenAspect = window.innerWidth / window.innerHeight;
-      const outputHeight = video.videoHeight;
-      const outputWidth = video.videoHeight * screenAspect;
+      // ビデオの解像度を基準に設定
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
 
-      canvas.width = outputWidth;
-      canvas.height = outputHeight;
+      // 1. カメラ映像を描画
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      const sx = (video.videoWidth - outputWidth) / 2;
-
-      // ビデオを描画
-      ctx.drawImage(video, sx, 0, outputWidth, outputHeight, 0, 0, outputWidth, outputHeight);
-      // ARレイヤーを重ねる
+      // 2. ARレイヤーの描画（現在のカメラ視界を強制更新して合成）
       sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
-      ctx.drawImage(sceneCanvas, 0, 0, outputWidth, outputHeight);
+      ctx.drawImage(sceneCanvas, 0, 0, canvas.width, canvas.height);
 
-      document.getElementById('preview-image').src = canvas.toDataURL('image/png');
+      // プレビュー表示
+      const previewImage = document.getElementById('preview-image');
+      previewImage.src = canvas.toDataURL('image/jpeg', 0.9);
       document.getElementById('preview-container').style.display = 'flex';
     });
 
+    // 閉じるボタン
     document.getElementById('close-btn').onclick = () => {
       document.getElementById('preview-container').style.display = 'none';
     };
