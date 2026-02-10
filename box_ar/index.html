@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>BBS GLB AR Optimized - Stable</title>
+  <title>BBS GLB AR Optimized - Deep Stable</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
@@ -33,7 +33,7 @@
   </div>
 
   <a-scene 
-    mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no; filterMinCF:0.0001; filterBeta: 1000;" 
+    mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no; filterMinCF:0.0001; filterBeta: 10000; warmupTolerance: 10; missTolerance: 10;" 
     renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true; sortObjects: true; precision: high;" 
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
@@ -51,7 +51,7 @@
       <a-gltf-model 
         id="target-obj" 
         src="#box-model" 
-        position="0 0 0" 
+        position="0 0 -1.5" 
         rotation="90 0 0" 
         scale="0.05 0.05 0.05">
       </a-gltf-model>
@@ -63,12 +63,8 @@
     const shootBtn = document.getElementById('shoot');
     const targetEl = document.getElementById('bbs-target');
 
-    targetEl.addEventListener('targetFound', () => { 
-      shootBtn.style.display = 'block'; 
-    });
-    targetEl.addEventListener('targetLost', () => { 
-      shootBtn.style.display = 'none'; 
-    });
+    targetEl.addEventListener('targetFound', () => { shootBtn.style.display = 'block'; });
+    targetEl.addEventListener('targetLost', () => { shootBtn.style.display = 'none'; });
 
     shootBtn.addEventListener('click', () => {
       const video = document.querySelector('video');
