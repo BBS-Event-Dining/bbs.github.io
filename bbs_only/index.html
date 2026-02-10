@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>BBS Heart AR High-Res</title>
+  <title>BBS Heart AR Ultimate</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
@@ -33,7 +33,7 @@
   </div>
 
   <a-scene 
-    mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no; filterMinCF:0.0001; filterBeta: 0.1; missTolerance: 5;" 
+    mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no; filterMinCF:0.00001; filterBeta: 0.01;" 
     renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true; precision: high;" 
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
@@ -64,7 +64,9 @@
       const heart = document.createElement('a-entity');
       const startX = (Math.random() - 0.5) * 1.2; 
       const startZ = (Math.random() - 0.5) * 0.3;
-      heart.setAttribute('geometry', { primitive: 'plane', width: 0.1, height: 0.1 });
+      
+      // 【サイズ20%縮小】 0.1 → 0.08 に変更
+      heart.setAttribute('geometry', { primitive: 'plane', width: 0.08, height: 0.08 });
       heart.setAttribute('material', { 
         src: '#heart-img', 
         transparent: true, 
@@ -85,30 +87,26 @@
       const sceneCanvas = sceneEl.canvas;
       if (!video || !sceneCanvas) return;
 
-      // 【改善】高画質化のため、動画のネイティブ解像度を基準にCanvasを作成
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
-      // デバイスのピクセル比率を考慮（Retina等でのボケ防止）
-      const dpr = window.devicePixelRatio || 1;
-      const screenAspect = window.innerWidth / window.innerHeight;
+      // 【縦構図の修正】ブラウザの表示画面比率に基づき計算
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      const screenAspect = screenWidth / screenHeight;
 
-      // 書き出しサイズを動画の最大解像度に合わせる
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoWidth / screenAspect;
+      canvas.width = video.videoHeight * screenAspect;
+      canvas.height = video.videoHeight;
 
-      // 撮影直前にAR描画を更新
       sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
 
-      // 実写映像をクロップして描画（中央寄せ）
-      const sx = 0;
-      const sy = (video.videoHeight - canvas.height) / 2;
-      ctx.drawImage(video, sx, sy, video.videoWidth, canvas.height, 0, 0, canvas.width, canvas.height);
+      // 実写映像の切り出し位置を再計算
+      const sx = (video.videoWidth - canvas.width) / 2;
+      ctx.drawImage(video, sx, 0, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
       
-      // AR映像を重ねる（sceneCanvasのサイズに合わせずCanvas全域にフィットさせる）
+      // ARレイヤーを重ねる
       ctx.drawImage(sceneCanvas, 0, 0, canvas.width, canvas.height);
 
-      // 最高画質(1.0)でJPEG出力
       document.getElementById('preview-image').src = canvas.toDataURL('image/jpeg', 1.0);
       document.getElementById('preview-container').style.display = 'flex';
     });
