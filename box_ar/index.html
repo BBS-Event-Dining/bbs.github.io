@@ -50,8 +50,8 @@
     <a-entity mindar-image-target="targetIndex: 0" id="bbs-target">
       <a-gltf-model 
         src="#box-model" 
-        position="0 0 0.1" 
-        rotation="90 0 0" 
+        position="0 0 0.01" 
+        rotation="0 0 0" 
         scale="2.16 2.16 2.16"
         shadow="cast: true; receive: true">
       </a-gltf-model>
@@ -78,6 +78,9 @@
       canvas.height = video.videoHeight;
 
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // キャプチャ直前に描画を強制
+      sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
 
       const sceneWidth = sceneCanvas.clientWidth;
       const sceneHeight = sceneCanvas.clientHeight;
