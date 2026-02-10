@@ -7,25 +7,16 @@
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
   <style>
-    /* 1. 根本的な背景透過の設定 */
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent !important; }
     
-    /* 2. 重なり順の絶対指定 */
-    video { 
-      position: absolute !important; 
-      z-index: -1 !important; /* ビデオを最背面に */
-    }
-    .a-canvas { 
-      position: absolute !important; 
-      z-index: 1 !important; /* ARを前面に */
-      background: transparent !important; 
-    }
+    video { position: absolute !important; z-index: -1 !important; }
+    .a-canvas { position: absolute !important; z-index: 1 !important; background: transparent !important; }
 
     #shoot { 
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
       z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; 
       border-radius: 50px; border: none; background: #ff4d6d; color: #fff; 
-      display: none; cursor: pointer;
+      display: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
     }
 
     #preview-container { 
@@ -47,7 +38,7 @@
 
   <a-scene 
     mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no;" 
-    renderer="preserveDrawingBuffer: true; alpha: true;" 
+    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true;" 
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
     
@@ -69,14 +60,8 @@
     const container = document.getElementById('bbs-container');
     let isFound = false;
 
-    targetEl.addEventListener('targetFound', () => { 
-      isFound = true; 
-      shootBtn.style.display = 'block'; 
-    });
-    targetEl.addEventListener('targetLost', () => { 
-      isFound = false; 
-      shootBtn.style.display = 'none'; 
-    });
+    targetEl.addEventListener('targetFound', () => { isFound = true; shootBtn.style.display = 'block'; });
+    targetEl.addEventListener('targetLost', () => { isFound = false; shootBtn.style.display = 'none'; });
 
     function spawnBBSHeart() {
       if (!isFound) return;
@@ -98,6 +83,9 @@
       const sceneCanvas = sceneEl.canvas;
       if (!video || !sceneCanvas) return;
 
+      // 重要：撮影直前に一度だけ強制的に再描画させて、バッファを最新の状態にする
+      sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const screenAspect = window.innerWidth / window.innerHeight;
@@ -105,11 +93,12 @@
       canvas.height = video.videoHeight;
       canvas.width = video.videoHeight * screenAspect;
 
-      // ビデオの中央を切り抜いて描画
       const sx = (video.videoWidth - (video.videoHeight * screenAspect)) / 2;
+      
+      // 1. カメラ映像を描画
       ctx.drawImage(video, sx, 0, video.videoHeight * screenAspect, video.videoHeight, 0, 0, canvas.width, canvas.height);
       
-      // ARを描画（バッファから直接取得）
+      // 2. ARオブジェクトを描画（強制レンダリング直後なので確実に取得できる）
       ctx.drawImage(sceneCanvas, 0, 0, canvas.width, canvas.height);
 
       document.getElementById('preview-image').src = canvas.toDataURL('image/jpeg', 0.9);
