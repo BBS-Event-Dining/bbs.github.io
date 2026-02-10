@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>BBS AR - Stable Version</title>
+  <title>BBS AR - bbs.mind Version</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
@@ -12,7 +12,7 @@
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
       z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; 
       border-radius: 50px; border: none; background: #4da3ff; color: #fff; 
-      display: none; cursor: pointer;
+      display: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
     }
     #preview-container { 
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -31,7 +31,7 @@
   </div>
 
   <a-scene 
-    mindar-image="imageTargetSrc: BOX_marker.mind; autoStart: true; uiLoading: yes; uiScanning: yes;" 
+    mindar-image="imageTargetSrc: bbs.mind; autoStart: true; uiLoading: yes; uiScanning: yes; missTolerance: 30;" 
     renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true;" 
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
@@ -45,7 +45,7 @@
     <a-entity mindar-image-target="targetIndex: 0" id="bbs-target">
       <a-gltf-model 
         src="#box-model" 
-        position="0 0 0" 
+        position="0 0 0.1" 
         rotation="0 0 0" 
         scale="1 1 1">
       </a-gltf-model>
@@ -57,20 +57,31 @@
     const shootBtn = document.getElementById('shoot');
     const targetEl = document.getElementById('bbs-target');
 
-    targetEl.addEventListener('targetFound', () => { shootBtn.style.display = 'block'; });
-    targetEl.addEventListener('targetLost', () => { shootBtn.style.display = 'none'; });
+    // 認識時のログ出力追加（デバッグ用）
+    targetEl.addEventListener('targetFound', () => { 
+      console.log("bbs.mind Found!");
+      shootBtn.style.display = 'block'; 
+    });
+    
+    targetEl.addEventListener('targetLost', () => { 
+      shootBtn.style.display = 'none'; 
+    });
 
     shootBtn.addEventListener('click', () => {
       const video = document.querySelector('video');
       const sceneCanvas = sceneEl.canvas;
       if (!video || !sceneCanvas) return;
+
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
+      
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
+
       sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       ctx.drawImage(sceneCanvas, 0, 0, canvas.width, canvas.height);
+
       document.getElementById('preview-image').src = canvas.toDataURL('image/jpeg');
       document.getElementById('preview-container').style.display = 'flex';
     });
