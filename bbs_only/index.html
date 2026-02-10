@@ -25,7 +25,10 @@
     #preview-image { width: auto; height: 80%; max-width: 90%; border: 2px solid #fff; object-fit: contain; }
     #close-btn { margin-top: 15px; padding: 12px 40px; background: #fff; border: none; font-weight: bold; border-radius: 5px; cursor: pointer; }
     
-    .a-canvas { z-index: 1; }
+    /* A-FrameのCanvasを確実に前面に配置 */
+    .a-canvas { z-index: 2; position: absolute; top: 0; left: 0; }
+    /* Mind-ARが生成するVideoを背面に配置 */
+    video { position: absolute; top: 0; left: 0; z-index: 0; }
   </style>
 </head>
 <body>
@@ -87,7 +90,7 @@
     }
     setInterval(spawnBBSHeart, 700);
 
-    // 撮影処理（縦構図最適化版）
+    // 撮影処理（背景消失バグ修正版）
     shootBtn.addEventListener('click', () => {
       const video = document.querySelector('video');
       const sceneCanvas = sceneEl.canvas;
@@ -96,30 +99,24 @@
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
-      // 1. スマホの画面比率（縦長）を取得
       const screenWidth = window.innerWidth;
       const screenHeight = window.innerHeight;
       const screenAspect = screenWidth / screenHeight;
 
-      // 2. 出力解像度を決定（ビデオの「高さ」を基準に縦長サイズを計算）
-      // videoWidth/Height はカメラのネイティブ解像度（通常横長）
       const outputHeight = video.videoHeight;
       const outputWidth = outputHeight * screenAspect;
 
       canvas.width = outputWidth;
       canvas.height = outputHeight;
 
-      // 3. ビデオ（被写体）を描画
-      // 横長のビデオから中央部分をクロップして縦長キャンバスに合わせる
+      // 1. 被写体（カメラ映像）を描画
       const sx = (video.videoWidth - (video.videoHeight * screenAspect)) / 2;
       ctx.drawImage(video, sx, 0, video.videoHeight * screenAspect, video.videoHeight, 0, 0, outputWidth, outputHeight);
 
-      // 4. ARレイヤー（ハート等）を描画
-      // A-FrameのCanvasをそのまま被せて描画
-      sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+      // 2. ARレイヤーを描画
+      // 強制再描画(render)をせず、既存のバッファから直接取得することで背景消失を防ぐ
       ctx.drawImage(sceneCanvas, 0, 0, outputWidth, outputHeight);
 
-      // 5. プレビュー表示
       const previewImage = document.getElementById('preview-image');
       previewImage.src = canvas.toDataURL('image/jpeg', 0.9);
       document.getElementById('preview-container').style.display = 'flex';
