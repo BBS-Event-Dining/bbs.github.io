@@ -87,41 +87,42 @@
     }
     setInterval(spawnBBSHeart, 700);
 
-    // 撮影処理
+    // 撮影処理（縦構図最適化版）
     shootBtn.addEventListener('click', () => {
-      // Mind-ARが生成したvideo要素を取得
       const video = document.querySelector('video');
       const sceneCanvas = sceneEl.canvas;
-      
-      if (!video || !sceneCanvas) {
-        alert("システムエラー：映像ソースが見つかりません");
-        return;
-      }
+      if (!video || !sceneCanvas) return;
 
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
-      // 1. ビデオの実際の解像度をキャンバスサイズに設定
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      // 1. スマホの画面比率（縦長）を取得
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      const screenAspect = screenWidth / screenHeight;
 
-      // 2. カメラ映像（被写体）を最背面に描画
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // 2. 出力解像度を決定（ビデオの「高さ」を基準に縦長サイズを計算）
+      // videoWidth/Height はカメラのネイティブ解像度（通常横長）
+      const outputHeight = video.videoHeight;
+      const outputWidth = outputHeight * screenAspect;
 
-      // 3. ARレイヤーの同期描画
-      // レンダラーに現在のシーンを強制的に再描画させてからCanvasをコピーする
+      canvas.width = outputWidth;
+      canvas.height = outputHeight;
+
+      // 3. ビデオ（被写体）を描画
+      // 横長のビデオから中央部分をクロップして縦長キャンバスに合わせる
+      const sx = (video.videoWidth - (video.videoHeight * screenAspect)) / 2;
+      ctx.drawImage(video, sx, 0, video.videoHeight * screenAspect, video.videoHeight, 0, 0, outputWidth, outputHeight);
+
+      // 4. ARレイヤー（ハート等）を描画
+      // A-FrameのCanvasをそのまま被せて描画
       sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
-      ctx.drawImage(sceneCanvas, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(sceneCanvas, 0, 0, outputWidth, outputHeight);
 
-      // 4. プレビュー表示
+      // 5. プレビュー表示
       const previewImage = document.getElementById('preview-image');
-      try {
-        previewImage.src = canvas.toDataURL('image/jpeg', 0.9);
-        document.getElementById('preview-container').style.display = 'flex';
-      } catch (err) {
-        console.error(err);
-        alert("画像の生成に失敗しました。HTTPS接続であることを確認してください。");
-      }
+      previewImage.src = canvas.toDataURL('image/jpeg', 0.9);
+      document.getElementById('preview-container').style.display = 'flex';
     });
 
     document.getElementById('close-btn').onclick = () => {
