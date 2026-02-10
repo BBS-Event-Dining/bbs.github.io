@@ -7,8 +7,20 @@
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
   <style>
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+    /* 1. 根本的な背景透過の設定 */
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent !important; }
     
+    /* 2. 重なり順の絶対指定 */
+    video { 
+      position: absolute !important; 
+      z-index: -1 !important; /* ビデオを最背面に */
+    }
+    .a-canvas { 
+      position: absolute !important; 
+      z-index: 1 !important; /* ARを前面に */
+      background: transparent !important; 
+    }
+
     #shoot { 
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
       z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; 
@@ -21,7 +33,6 @@
       background: rgba(0,0,0,0.95); z-index: 99999; flex-direction: column; 
       align-items: center; justify-content: center; 
     }
-
     #preview-image { width: auto; height: 80%; max-width: 90%; border: 2px solid #fff; object-fit: contain; }
     #close-btn { margin-top: 15px; padding: 12px 40px; background: #fff; border: none; font-weight: bold; border-radius: 5px; }
   </style>
@@ -31,12 +42,11 @@
   
   <div id="preview-container">
     <img id="preview-image" src="">
-    <p style="color: white; font-size: 12px; margin-top: 5px;">画像を長押しして保存してください</p>
     <button id="close-btn">閉じる</button>
   </div>
 
   <a-scene 
-    mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true;" 
+    mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no;" 
     renderer="preserveDrawingBuffer: true; alpha: true;" 
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
@@ -73,19 +83,16 @@
       const heart = document.createElement('a-entity');
       const startX = (Math.random() - 0.5) * 1.5; 
       const startZ = (Math.random() - 0.5) * 0.5;
-      
       heart.setAttribute('geometry', { primitive: 'plane', width: 0.2, height: 0.2 });
       heart.setAttribute('material', { src: '#heart-img', transparent: true, shader: 'flat', side: 'double' });
       heart.setAttribute('position', `${startX} 0 ${startZ}`);
       heart.setAttribute('animation__move', { property: 'position', to: `${startX} 2.0 ${startZ}`, dur: 10000, easing: 'linear' });
       heart.setAttribute('animation__fade', { property: 'material.opacity', from: 1, to: 0, dur: 10000 });
-      
       container.appendChild(heart);
       setTimeout(() => { if(heart.parentNode) heart.parentNode.removeChild(heart); }, 10000);
     }
     setInterval(spawnBBSHeart, 700);
 
-    // 撮影処理：画面で見ているものをそのまま切り取る
     shootBtn.addEventListener('click', () => {
       const video = document.querySelector('video');
       const sceneCanvas = sceneEl.canvas;
@@ -93,39 +100,19 @@
 
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
+      const screenAspect = window.innerWidth / window.innerHeight;
 
-      // スマホの画面比率でキャンバスを作成
-      const screenWidth = window.innerWidth;
-      const screenHeight = window.innerHeight;
-      
-      // 高解像度で保存するためビデオの縦幅を基準にする
       canvas.height = video.videoHeight;
-      canvas.width = video.videoHeight * (screenWidth / screenHeight);
+      canvas.width = video.videoHeight * screenAspect;
 
-      // 1. 被写体を描画（ビデオから画面で見えている範囲をクロップ）
-      const videoAspect = video.videoWidth / video.videoHeight;
-      const screenAspect = screenWidth / screenHeight;
-      let sx, sy, sw, sh;
-
-      if (videoAspect > screenAspect) {
-        sw = video.videoHeight * screenAspect;
-        sh = video.videoHeight;
-        sx = (video.videoWidth - sw) / 2;
-        sy = 0;
-      } else {
-        sw = video.videoWidth;
-        sh = video.videoWidth / screenAspect;
-        sx = 0;
-        sy = (video.videoHeight - sh) / 2;
-      }
-
-      ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-
-      // 2. ARを描画
+      // ビデオの中央を切り抜いて描画
+      const sx = (video.videoWidth - (video.videoHeight * screenAspect)) / 2;
+      ctx.drawImage(video, sx, 0, video.videoHeight * screenAspect, video.videoHeight, 0, 0, canvas.width, canvas.height);
+      
+      // ARを描画（バッファから直接取得）
       ctx.drawImage(sceneCanvas, 0, 0, canvas.width, canvas.height);
 
-      const previewImage = document.getElementById('preview-image');
-      previewImage.src = canvas.toDataURL('image/jpeg', 0.9);
+      document.getElementById('preview-image').src = canvas.toDataURL('image/jpeg', 0.9);
       document.getElementById('preview-container').style.display = 'flex';
     });
 
