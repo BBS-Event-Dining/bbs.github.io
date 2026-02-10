@@ -2,12 +2,14 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>BBS AR - Stable & Half Size</title>
+  <title>BBS AR - chirashi.mind Version</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
   <style>
     html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+    /* ローディング画面を少し分かりやすく */
+    .mindar-ui-overlay.mindar-ui-loading { background: rgba(0,0,0,0.8); }
     #shoot { 
       position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
       z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; 
@@ -31,7 +33,7 @@
   </div>
 
   <a-scene 
-    mindar-image="imageTargetSrc: bbs.mind; autoStart: true; uiLoading: yes; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 1000; missTolerance: 60;" 
+    mindar-image="imageTargetSrc: chirashi.mind; autoStart: true; uiLoading: yes; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 1000; missTolerance: 60; warmupTolerance: 10;" 
     renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true;" 
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
@@ -42,10 +44,13 @@
 
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
+    <a-entity light="type: ambient; intensity: 1.2"></a-entity>
+    <a-entity light="type: directional; position: 0 1 1; intensity: 0.5"></a-entity>
+
     <a-entity mindar-image-target="targetIndex: 0" id="bbs-target">
       <a-gltf-model 
         src="#box-model" 
-        position="0 0 0.01" 
+        position="0 0 0.05" 
         rotation="0 0 0" 
         scale="0.5 0.5 0.5">
       </a-gltf-model>
@@ -57,7 +62,9 @@
     const shootBtn = document.getElementById('shoot');
     const targetEl = document.getElementById('bbs-target');
 
+    // 認識イベント
     targetEl.addEventListener('targetFound', () => { 
+      console.log("chirashi.mind Detected!");
       shootBtn.style.display = 'block'; 
     });
     
@@ -65,6 +72,7 @@
       shootBtn.style.display = 'none'; 
     });
 
+    // 撮影処理
     shootBtn.addEventListener('click', () => {
       const video = document.querySelector('video');
       const sceneCanvas = sceneEl.canvas;
