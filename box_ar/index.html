@@ -45,7 +45,7 @@
     <a-camera position="0 0 0" look-controls="enabled: false" near="0.01" far="100"></a-camera>
 
     <a-entity light="type: ambient; intensity: 0.8"></a-entity>
-    <a-entity light="type: directional; intensity: 0.6; castShadow: true; shadowMapHeight: 2048; shadowMapWidth: 2048;" position="1 2 1"></a-entity>
+    <a-entity light="type: directional; intensity: 0.6;" position="1 2 1"></a-entity>
 
     <a-entity mindar-image-target="targetIndex: 0" id="bbs-target">
       <a-gltf-model 
@@ -71,36 +71,37 @@
       const sceneCanvas = sceneEl.canvas;
       if (!video || !sceneCanvas) return;
 
+      // 保存用キャンバスのサイズを「現在の画面表示サイズ」に合わせる
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      const screenW = sceneCanvas.clientWidth;
+      const screenH = sceneCanvas.clientHeight;
+      canvas.width = screenW;
+      canvas.height = screenH;
 
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // --- ビデオ背景の描画（画面で見えている範囲を切り出す） ---
+      const videoW = video.videoWidth;
+      const videoH = video.videoHeight;
+      const videoAspect = videoW / videoH;
+      const screenAspect = screenW / screenH;
 
-      // キャプチャ直前に最新の行列計算を強制
-      sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+      let sourceX = 0, sourceY = 0, sourceW = videoW, sourceH = videoH;
 
-      const sceneWidth = sceneCanvas.clientWidth;
-      const sceneHeight = sceneCanvas.clientHeight;
-      const videoRatio = canvas.width / canvas.height;
-      const sceneRatio = sceneWidth / sceneHeight;
-
-      let drawW = canvas.width;
-      let drawH = canvas.height;
-      let offsetX = 0;
-      let offsetY = 0;
-
-      if (sceneRatio > videoRatio) {
-          drawH = canvas.width / sceneRatio;
-          offsetY = (canvas.height - drawH) / 2;
+      if (videoAspect > screenAspect) {
+        // ビデオが横に長い場合（スマホ縦持ち）
+        sourceW = videoH * screenAspect;
+        sourceX = (videoW - sourceW) / 2;
       } else {
-          drawW = canvas.height * sceneRatio;
-          offsetX = (canvas.width - drawW) / 2;
+        // ビデオが縦に長い場合
+        sourceH = videoW / screenAspect;
+        sourceY = (videoH - sourceH) / 2;
       }
 
-      ctx.drawImage(sceneCanvas, offsetX, offsetY, drawW, drawH);
+      ctx.drawImage(video, sourceX, sourceY, sourceW, sourceH, 0, 0, screenW, screenH);
+
+      // --- ARモデル（Canvas）の描画 ---
+      sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+      ctx.drawImage(sceneCanvas, 0, 0, screenW, screenH);
 
       document.getElementById('preview-image').src = canvas.toDataURL('image/jpeg');
       document.getElementById('preview-container').style.display = 'flex';
