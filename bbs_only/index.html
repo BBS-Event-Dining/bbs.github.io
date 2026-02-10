@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>BBS Heart AR Optimized</title>
+  <title>BBS Heart AR High-Res</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
@@ -21,7 +21,7 @@
       background: rgba(0,0,0,0.95); z-index: 99999; flex-direction: column; 
       align-items: center; justify-content: center; 
     }
-    #preview-image { width: auto; height: 80%; max-width: 90%; border: 2px solid #fff; object-fit: contain; }
+    #preview-image { width: auto; height: 80%; max-width: 95%; border: 1px solid #fff; object-fit: contain; }
     #close-btn { margin-top: 15px; padding: 12px 40px; background: #fff; border: none; font-weight: bold; border-radius: 5px; }
   </style>
 </head>
@@ -33,8 +33,8 @@
   </div>
 
   <a-scene 
-    mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no; filterMinCF:0.001; filterBeta: 10;" 
-    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true;" 
+    mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no; filterMinCF:0.0001; filterBeta: 0.1; missTolerance: 5;" 
+    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true; precision: high;" 
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
     
@@ -62,14 +62,9 @@
     function spawnBBSHeart() {
       if (!isFound) return;
       const heart = document.createElement('a-entity');
-      
-      // 出現範囲とサイズ（半分: 0.1）を調整
       const startX = (Math.random() - 0.5) * 1.2; 
       const startZ = (Math.random() - 0.5) * 0.3;
-      
       heart.setAttribute('geometry', { primitive: 'plane', width: 0.1, height: 0.1 });
-      
-      // 【修正点】alphaTestを追加して重なり時の透過不良を解消、震え対策としてshaderをflatに固定
       heart.setAttribute('material', { 
         src: '#heart-img', 
         transparent: true, 
@@ -77,32 +72,44 @@
         shader: 'flat', 
         side: 'double' 
       });
-      
       heart.setAttribute('position', `${startX} 0 ${startZ}`);
       heart.setAttribute('animation__move', { property: 'position', to: `${startX} 1.5 ${startZ}`, dur: 8000, easing: 'linear' });
       heart.setAttribute('animation__fade', { property: 'material.opacity', from: 1, to: 0, dur: 8000 });
-      
       container.appendChild(heart);
       setTimeout(() => { if(heart.parentNode) heart.parentNode.removeChild(heart); }, 8000);
     }
-
-    // 数を増やすため、インターバルを短縮（700ms -> 300ms）
     setInterval(spawnBBSHeart, 300);
 
     shootBtn.addEventListener('click', () => {
       const video = document.querySelector('video');
       const sceneCanvas = sceneEl.canvas;
       if (!video || !sceneCanvas) return;
-      sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+
+      // 【改善】高画質化のため、動画のネイティブ解像度を基準にCanvasを作成
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
+      
+      // デバイスのピクセル比率を考慮（Retina等でのボケ防止）
+      const dpr = window.devicePixelRatio || 1;
       const screenAspect = window.innerWidth / window.innerHeight;
-      canvas.height = video.videoHeight;
-      canvas.width = video.videoHeight * screenAspect;
-      const sx = (video.videoWidth - (video.videoHeight * screenAspect)) / 2;
-      ctx.drawImage(video, sx, 0, video.videoHeight * screenAspect, video.videoHeight, 0, 0, canvas.width, canvas.height);
+
+      // 書き出しサイズを動画の最大解像度に合わせる
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoWidth / screenAspect;
+
+      // 撮影直前にAR描画を更新
+      sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+
+      // 実写映像をクロップして描画（中央寄せ）
+      const sx = 0;
+      const sy = (video.videoHeight - canvas.height) / 2;
+      ctx.drawImage(video, sx, sy, video.videoWidth, canvas.height, 0, 0, canvas.width, canvas.height);
+      
+      // AR映像を重ねる（sceneCanvasのサイズに合わせずCanvas全域にフィットさせる）
       ctx.drawImage(sceneCanvas, 0, 0, canvas.width, canvas.height);
-      document.getElementById('preview-image').src = canvas.toDataURL('image/jpeg', 0.9);
+
+      // 最高画質(1.0)でJPEG出力
+      document.getElementById('preview-image').src = canvas.toDataURL('image/jpeg', 1.0);
       document.getElementById('preview-container').style.display = 'flex';
     });
 
