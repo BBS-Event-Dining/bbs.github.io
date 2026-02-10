@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>BBS AR - Self Shadow Only</title>
+  <title>BBS AR - Stable & Fixed Orientation</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
@@ -32,7 +32,8 @@
   </div>
 
   <a-scene 
-    mindar-image="imageTargetSrc: chirashi.mind; autoStart: true; uiLoading: yes; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 1000; missTolerance: 60; warmupTolerance: 10;" 
+    mindar-image="imageTargetSrc: chirashi.mind; autoStart: true; uiLoading: yes; uiScanning: yes; 
+                  filterMinCF: 0.001; filterBeta: 10; missTolerance: 60; warmupTolerance: 10;" 
     renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true; shadowMapEnabled: true;" 
     vr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false">
@@ -41,28 +42,17 @@
       <a-asset-item id="box-model" src="box_toAR.glb"></a-asset-item>
     </a-assets>
 
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+    <a-camera position="0 0 0" look-controls="enabled: false" near="0.1" far="100"></a-camera>
 
     <a-entity light="type: ambient; intensity: 0.7"></a-entity>
-    
-    <a-entity light="type: directional; 
-                   intensity: 0.8; 
-                   castShadow: true; 
-                   shadowMapHeight: 2048; 
-                   shadowMapWidth: 2048; 
-                   shadowCameraLeft: -3; 
-                   shadowCameraRight: 3; 
-                   shadowCameraBottom: -3; 
-                   shadowCameraTop: 3;
-                   shadowBias: -0.001;" 
-              position="2 4 2"></a-entity>
+    <a-entity light="type: directional; intensity: 0.8; castShadow: true; shadowMapHeight: 2048; shadowMapWidth: 2048; shadowCameraLeft: -3; shadowCameraRight: 3; shadowCameraBottom: -3; shadowCameraTop: 3; shadowBias: -0.001;" position="2 4 2"></a-entity>
 
     <a-entity mindar-image-target="targetIndex: 0" id="bbs-target">
       <a-gltf-model 
         src="#box-model" 
-        position="0 0 0" 
-        rotation="0 0 0" 
-        scale="1.8 1.8 1.8"
+        position="0 0 0.1" 
+        rotation="90 0 0" 
+        scale="2.16 2.16 2.16"
         shadow="cast: true; receive: true">
       </a-gltf-model>
     </a-entity>
@@ -73,25 +63,42 @@
     const shootBtn = document.getElementById('shoot');
     const targetEl = document.getElementById('bbs-target');
 
-    targetEl.addEventListener('targetFound', () => { 
-      shootBtn.style.display = 'block'; 
-    });
-    
-    targetEl.addEventListener('targetLost', () => { 
-      shootBtn.style.display = 'none'; 
-    });
+    targetEl.addEventListener('targetFound', () => { shootBtn.style.display = 'block'; });
+    targetEl.addEventListener('targetLost', () => { shootBtn.style.display = 'none'; });
 
     shootBtn.addEventListener('click', () => {
       const video = document.querySelector('video');
       const sceneCanvas = sceneEl.canvas;
       if (!video || !sceneCanvas) return;
+
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
+      
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      ctx.drawImage(sceneCanvas, 0, 0, canvas.width, canvas.height);
+
+      const sceneWidth = sceneCanvas.clientWidth;
+      const sceneHeight = sceneCanvas.clientHeight;
+      const videoRatio = canvas.width / canvas.height;
+      const sceneRatio = sceneWidth / sceneHeight;
+
+      let drawW = canvas.width;
+      let drawH = canvas.height;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      if (sceneRatio > videoRatio) {
+          drawH = canvas.width / sceneRatio;
+          offsetY = (canvas.height - drawH) / 2;
+      } else {
+          drawW = canvas.height * sceneRatio;
+          offsetX = (canvas.width - drawW) / 2;
+      }
+
+      ctx.drawImage(sceneCanvas, offsetX, offsetY, drawW, drawH);
+
       document.getElementById('preview-image').src = canvas.toDataURL('image/jpeg');
       document.getElementById('preview-container').style.display = 'flex';
     });
