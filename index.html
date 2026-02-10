@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BBS AR Menu</title>
+  <style>
+    body {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: #333;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 2rem;
+      color: #2c3e50;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 15px;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    .ar-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+      background: #ffffff;
+      color: #4da3ff;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 1.1rem;
+      border: 2px solid #4da3ff;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .ar-button:active {
+      background: #4da3ff;
+      color: #fff;
+      transform: scale(0.96);
+    }
+
+    .footer-text {
+      margin-top: 3rem;
+      font-size: 0.85rem;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>ARメニューを選択してください</h1>
+
+  <div class="menu-grid">
+    <a href="https://bbs-event-dining.github.io/bbs.github.io/box_ar/" class="ar-button">Doll packaging</a>
+    <a href="https://bbs-event-dining.github.io/bbs.github.io/bbs_only/" class="ar-button">フォトスポット用</a>
+    <a href="https://bbs-event-dining.github.io/bbs.github.io/heart_waku/" class="ar-button">heart枠</a>
+    <a href="https://bbs-event-dining.github.io/bbs.github.io/arch/" class="ar-button">花のarch</a>
+  </div>
+
+  <div class="footer-text">
+    チラシを正面に向けてスキャンしてください
+  </div>
+
+</body>
+</html>
