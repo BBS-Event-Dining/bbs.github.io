@@ -1,107 +1,99 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>Box AR - Complete</title>
+  <meta charset="utf-8">
+  <title>BBS GLB AR Optimized</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  
-  <script src="https://aframe.io/releases/1.4.1/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent !important; }
+    video { position: absolute !important; z-index: -1 !important; }
+    .a-canvas { position: absolute !important; z-index: 1 !important; background: transparent !important; }
+    #shoot { 
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
+      z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; 
+      border-radius: 50px; border: none; background: #4da3ff; color: #fff; 
+      display: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    #preview-container { 
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background: rgba(0,0,0,0.95); z-index: 99999; flex-direction: column; 
+      align-items: center; justify-content: center; 
+    }
+    #preview-image { width: auto; height: 80%; max-width: 90%; border: 2px solid #fff; object-fit: contain; }
+    #close-btn { margin-top: 15px; padding: 12px 40px; background: #fff; border: none; font-weight: bold; border-radius: 5px; }
+  </style>
 </head>
-
-<body style="margin:0; overflow:hidden;">
-
-  <div style="position:fixed; bottom:30px; left:50%; transform:translateX(-50%); z-index:1000; display:flex; gap:20px;">
-    <button id="lock" style="padding:12px 20px; border-radius:10px; border:none; background:#4CAF50; color:white; font-weight:bold; box-shadow:0 4px 10px rgba(0,0,0,0.3);">位置を固定</button>
-    <button id="capture" style="width:70px; height:70px; border-radius:50%; border:5px solid white; background:#ff4b5c; box-shadow: 0 4px 15px rgba(0,0,0,0.4);"></button>
+<body>
+  <button id="shoot">撮影する</button>
+  <div id="preview-container">
+    <img id="preview-image" src="">
+    <button id="close-btn">閉じる</button>
   </div>
 
   <a-scene 
-    embedded 
-    arjs="sourceType: webcam; debugUIEnabled: false;" 
+    mindar-image="imageTargetSrc: ./bbs.mind; autoStart: true; uiLoading: no; uiScanning: no; filterMinCF:0.001; filterBeta: 10;" 
+    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true; exposure: 1.0;" 
     vr-mode-ui="enabled: false"
-    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true;">
+    device-orientation-permission-ui="enabled: false">
+    
+    <a-assets>
+      <a-asset-item id="box-model" src="box_toAR.glb"></a-asset-item>
+    </a-assets>
 
-    <a-marker preset="hiro" id="marker">
-      <a-entity id="ar-content">
-        <a-entity 
-          id="box-model"
-          gltf-model="url(https://bbs-event-dining.github.io/bbs.github.io/box_ar/box_toAR.glb)" 
-          animation-mixer="clip: *; loop: repeat"
-          position="0 0 0" 
-          scale="1 1 1">
-        </a-entity>
-      </a-entity>
-    </a-marker>
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <a-entity camera id="main-camera"></a-entity>
+    <a-entity mindar-image-target="targetIndex: 0" id="bbs-target">
+      <a-gltf-model 
+        id="target-obj" 
+        src="#box-model" 
+        position="0 0 0" 
+        rotation="0 0 0" 
+        scale="1 1 1">
+      </a-gltf-model>
+    </a-entity>
   </a-scene>
 
-<script>
-  const marker = document.querySelector('#marker');
-  const content = document.querySelector('#ar-content');
-  const lockBtn = document.querySelector('#lock');
-  const sceneEl = document.querySelector('a-scene');
+  <script>
+    const sceneEl = document.querySelector('a-scene');
+    const shootBtn = document.getElementById('shoot');
+    const targetEl = document.getElementById('bbs-target');
 
-  let isLocked = false;
+    // マーカー検知時のボタン表示制御のみ残す
+    targetEl.addEventListener('targetFound', () => { 
+      shootBtn.style.display = 'block'; 
+    });
+    targetEl.addEventListener('targetLost', () => { 
+      shootBtn.style.display = 'none'; 
+    });
 
-  // 位置固定：消失防止ロジック
-  lockBtn.addEventListener('click', () => {
-    if (isLocked) {
-      marker.appendChild(content);
-      content.object3D.position.set(0, 0, 0);
-      content.object3D.rotation.set(0, 0, 0);
-      lockBtn.innerText = "位置を固定";
-      lockBtn.style.background = "#4CAF50";
-      isLocked = false;
-    } else {
-      const worldPos = new THREE.Vector3();
-      const worldQuat = new THREE.Quaternion();
-      content.object3D.updateMatrixWorld(true);
-      content.object3D.getWorldPosition(worldPos);
-      content.object3D.getWorldQuaternion(worldQuat);
-      sceneEl.appendChild(content); 
-      content.object3D.position.copy(worldPos);
-      content.object3D.quaternion.copy(worldQuat);
-      lockBtn.innerText = "固定解除";
-      lockBtn.style.background = "#f44336";
-      isLocked = true;
-    }
-  });
+    // 撮影機能（変更なし）
+    shootBtn.addEventListener('click', () => {
+      const video = document.querySelector('video');
+      const sceneCanvas = sceneEl.canvas;
+      if (!video || !sceneCanvas) return;
+      
+      sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const screenAspect = window.innerWidth / window.innerHeight;
+      
+      canvas.height = video.videoHeight;
+      canvas.width = video.videoHeight * screenAspect;
+      
+      const sx = (video.videoWidth - (video.videoHeight * screenAspect)) / 2;
+      
+      ctx.drawImage(video, sx, 0, video.videoHeight * screenAspect, video.videoHeight, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(sceneCanvas, 0, 0, canvas.width, canvas.height);
+      
+      document.getElementById('preview-image').src = canvas.toDataURL('image/jpeg', 0.9);
+      document.getElementById('preview-container').style.display = 'flex';
+    });
 
-  // 撮影：縦横比維持ロジック
-  document.querySelector('#capture').addEventListener('click', () => {
-    const video = document.querySelector('video');
-    const canvas = sceneEl.canvas;
-    sceneEl.renderer.render(sceneEl.object3D, document.querySelector('[camera]').getObject3D('camera'));
-
-    const outputCanvas = document.createElement('canvas');
-    outputCanvas.width = video.videoWidth;
-    outputCanvas.height = video.videoHeight;
-    const ctx = outputCanvas.getContext('2d');
-
-    ctx.drawImage(video, 0, 0, outputCanvas.width, outputCanvas.height);
-    
-    const canvasAspect = canvas.width / canvas.height;
-    const videoAspect = video.videoWidth / video.videoHeight;
-    let drawW = outputCanvas.width, drawH = outputCanvas.height, offsetX = 0, offsetY = 0;
-
-    if (canvasAspect > videoAspect) {
-        drawH = outputCanvas.width / canvasAspect;
-        offsetY = (outputCanvas.height - drawH) / 2;
-    } else {
-        drawW = outputCanvas.height * canvasAspect;
-        offsetX = (outputCanvas.width - drawW) / 2;
-    }
-
-    ctx.drawImage(canvas, offsetX, offsetY, drawW, drawH);
-
-    const link = document.createElement('a');
-    link.href = outputCanvas.toDataURL('image/png');
-    link.download = `AR_Box_Capture.png`;
-    link.click();
-  });
-</script>
+    document.getElementById('close-btn').onclick = () => {
+      document.getElementById('preview-container').style.display = 'none';
+    };
+  </script>
 </body>
 </html>
