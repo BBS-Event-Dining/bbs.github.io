@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>BBS AR - Precision Fixed</title>
+  <title>BBS AR - Heart Float Vertical</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
@@ -39,22 +39,24 @@
     device-orientation-permission-ui="enabled: false">
     
     <a-assets>
-      <a-asset-item id="box-model" src="box_toAR.glb"></a-asset-item>
+      <a-asset-item id="heart-fixed" src="heart_obj.glb"></a-asset-item>
+      <a-asset-item id="heart-float" src="heart_obj_b.glb"></a-asset-item>
     </a-assets>
 
     <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false" near="0.01" far="100"></a-camera>
 
     <a-entity light="type: ambient; intensity: 0.8"></a-entity>
-    <a-entity light="type: directional; intensity: 0.6;" position="1 2 1"></a-entity>
+    <a-entity light="type: directional; intensity: 0.6;" position="1 2 5"></a-entity>
 
     <a-entity mindar-image-target="targetIndex: 0" id="bbs-target">
       <a-gltf-model 
-        src="#box-model" 
-        position="0 0 0" 
-        rotation="0 0 0" 
-        scale="1.84 1.84 1.84"
-        shadow="cast: true; receive: true">
+        src="#heart-fixed" 
+        position="0 0 0.01" 
+        rotation="90 0 0" 
+        scale="1.56 1.56 1.56">
       </a-gltf-model>
+
+      <a-entity id="floating-container"></a-entity>
     </a-entity>
   </a-scene>
 
@@ -62,10 +64,48 @@
     const sceneEl = document.querySelector('a-scene');
     const shootBtn = document.getElementById('shoot');
     const targetEl = document.getElementById('bbs-target');
+    const container = document.getElementById('floating-container');
+
+    const spawnHeart = () => {
+      if (!targetEl.getAttribute('visible')) return;
+
+      const heart = document.createElement('a-gltf-model');
+      heart.setAttribute('src', '#heart-float');
+      
+      // マーカー面（X, Y）上のランダム位置から発生
+      const startX = (Math.random() - 0.5) * 1.0; 
+      const startY = (Math.random() - 0.5) * 1.4;
+      
+      // 初期位置はマーカーのすぐ上(Z=0.01)
+      heart.setAttribute('position', `${startX} ${startY} 0.01`);
+      heart.setAttribute('scale', '1.2 1.2 1.2');
+      heart.setAttribute('rotation', '90 0 0'); // モデル自体も垂直に起こす
+
+      // アニメーション：Z軸（垂直上方向）へ移動しながら消える
+      heart.setAttribute('animation__pos', {
+        property: 'position',
+        to: `${startX} ${startY} 1.0`, // Z方向へ1.0（約1メートル相当）上昇
+        dur: 5000,
+        easing: 'linear'
+      });
+      heart.setAttribute('animation__fade', {
+        property: 'scale',
+        to: '0 0 0',
+        dur: 5000,
+        easing: 'easeInQuad'
+      });
+
+      container.appendChild(heart);
+      setTimeout(() => { if(heart.parentNode) heart.remove(); }, 5000);
+    };
+
+    // 0.8秒ごとに生成して「フワフワ感」を出す
+    setInterval(spawnHeart, 800);
 
     targetEl.addEventListener('targetFound', () => { shootBtn.style.display = 'block'; });
     targetEl.addEventListener('targetLost', () => { shootBtn.style.display = 'none'; });
 
+    // 撮影ロジック
     shootBtn.addEventListener('click', () => {
       const video = document.querySelector('video');
       const sceneCanvas = sceneEl.canvas;
