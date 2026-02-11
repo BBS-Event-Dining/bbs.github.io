@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>BBS AR - Heart Edge Float Mini</title>
+  <title>BBS AR - Heart with Shadow</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
@@ -36,24 +36,29 @@
                   filterMinCF: 0.00001; filterBeta: 0.0001; missTolerance: 100; warmupTolerance: 5;" 
     renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true; logarithmicDepthBuffer: true; precision: high;" 
     vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false">
-    
-    <a-assets>
+    device-orientation-permission-ui="enabled: false"
+    shadow="type: pcfsoft"> <a-assets>
       <a-asset-item id="heart-fixed" src="heart_obj.glb"></a-asset-item>
       <a-asset-item id="heart-float" src="heart_obj_b.glb"></a-asset-item>
     </a-assets>
 
     <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false" near="0.01" far="100"></a-camera>
 
-    <a-entity light="type: ambient; intensity: 0.8"></a-entity>
-    <a-entity light="type: directional; intensity: 0.7;" position="1 2 5"></a-entity>
+    <a-entity light="type: ambient; intensity: 0.5"></a-entity>
+    
+    <a-entity light="type: directional; intensity: 0.8; castShadow: true; shadowMapHeight: 1024; shadowMapWidth: 1024; shadowCameraLeft: -1; shadowCameraRight: 1; shadowCameraBottom: -1; shadowCameraTop: 1;" 
+              position="1 4 3" target="#bbs-target"></a-entity>
 
     <a-entity mindar-image-target="targetIndex: 0" id="bbs-target">
+      
+      <a-plane position="0 0 0" rotation="0 0 0" width="1.5" height="2" shadow="receive: true" material="opacity: 0; transparent: true"></a-plane>
+
       <a-gltf-model 
         src="#heart-fixed" 
         position="0 0 0.01" 
         rotation="90 0 0" 
-        scale="0.39 0.39 0.39">
+        scale="0.39 0.39 0.39"
+        shadow="cast: true; receive: false">
       </a-gltf-model>
 
       <a-entity id="floating-container"></a-entity>
@@ -83,9 +88,9 @@
       }
       
       heart.setAttribute('position', `${startX} ${startY} 0.01`);
-      // 浮上ハート：前回の0.48から50%縮小(0.24)
       heart.setAttribute('scale', '0.24 0.24 0.24');
       heart.setAttribute('rotation', '90 0 0');
+      // 浮遊物は影を落とさない設定（重くなるのを防ぐため）
 
       heart.setAttribute('animation__pos', {
         property: 'position',
