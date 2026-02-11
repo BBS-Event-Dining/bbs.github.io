@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
-  <title>BBS AR - Heart Edge Float</title>
+  <title>BBS AR - Heart Edge Float Mini</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
@@ -53,7 +53,7 @@
         src="#heart-fixed" 
         position="0 0 0.01" 
         rotation="90 0 0" 
-        scale="0.78 0.78 0.78">
+        scale="0.39 0.39 0.39">
       </a-gltf-model>
 
       <a-entity id="floating-container"></a-entity>
@@ -73,30 +73,18 @@
       heart.setAttribute('src', '#heart-float');
       
       let startX, startY;
-      const edge = Math.floor(Math.random() * 4); // 0:上, 1:右, 2:下, 3:左
+      const edge = Math.floor(Math.random() * 4);
 
-      // マーカーのサイズ（約1.0 x 1.4）の縁に座標を固定
       switch(edge) {
-        case 0: // 上辺
-          startX = (Math.random() - 0.5) * 1.0;
-          startY = 0.7;
-          break;
-        case 1: // 右辺
-          startX = 0.5;
-          startY = (Math.random() - 0.5) * 1.4;
-          break;
-        case 2: // 下辺
-          startX = (Math.random() - 0.5) * 1.0;
-          startY = -0.7;
-          break;
-        case 3: // 左辺
-          startX = -0.5;
-          startY = (Math.random() - 0.5) * 1.4;
-          break;
+        case 0: startX = (Math.random() - 0.5) * 1.0; startY = 0.7; break;
+        case 1: startX = 0.5; startY = (Math.random() - 0.5) * 1.4; break;
+        case 2: startX = (Math.random() - 0.5) * 1.0; startY = -0.7; break;
+        case 3: startX = -0.5; startY = (Math.random() - 0.5) * 1.4; break;
       }
       
       heart.setAttribute('position', `${startX} ${startY} 0.01`);
-      heart.setAttribute('scale', '0.48 0.48 0.48');
+      // 浮上ハート：前回の0.48から50%縮小(0.24)
+      heart.setAttribute('scale', '0.24 0.24 0.24');
       heart.setAttribute('rotation', '90 0 0');
 
       heart.setAttribute('animation__pos', {
