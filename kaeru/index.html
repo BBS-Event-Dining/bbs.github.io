@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>BBS AR - Kaeru</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+    .mindar-ui-overlay.mindar-ui-loading { background: rgba(0,0,0,0.8); }
+    #shoot { 
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
+      z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; 
+      border-radius: 50px; border: none; background: #4da3ff; color: #fff; 
+      display: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    }
+    #preview-container { 
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background: rgba(0,0,0,0.9); z-index: 99999; flex-direction: column; 
+      align-items: center; justify-content: center; 
+    }
+    #preview-image { width: auto; height: 80%; max-width: 95%; border: 1px solid #fff; object-fit: contain; }
+    #close-btn { margin-top: 15px; padding: 12px 40px; background: #fff; border: none; font-weight: bold; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <button id="shoot">撮影する</button>
+  <div id="preview-container">
+    <img id="preview-image" src="">
+    <button id="close-btn">閉じる</button>
+  </div>
+
+  <a-scene 
+    mindar-image="imageTargetSrc: kaeru.mind; autoStart: true; uiLoading: yes; uiScanning: yes; 
+                  filterMinCF: 0.00001; filterBeta: 0.0001; missTolerance: 100; warmupTolerance: 5;" 
+    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true; logarithmicDepthBuffer: true; precision: high;" 
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false">
+    
+    <a-assets>
+      <img id="kaeru-img" src="kaeru.png">
+    </a-assets>
+
+    <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false" near="0.01" far="100"></a-camera>
+
+    <a-entity mindar-image-target="targetIndex: 0" id="bbs-target">
+      <a-image 
+        src="#kaeru-img" 
+        position="0 0 0.01" 
+        width="0.8" height="0.8">
+      </a-image>
+
+      <a-entity id="floating-container"></a-entity>
+    </a-entity>
+  </a-scene>
+
+  <script>
+    const sceneEl = document.querySelector('a-scene');
+    const shootBtn = document.getElementById('shoot');
+    const targetEl = document.getElementById('bbs-target');
+    const container = document.getElementById('floating-container');
+
+    const spawnKaeru = () => {
+      if (!targetEl.getAttribute('visible')) return;
+
+      const kaeru = document.createElement('a-image');
+      kaeru.setAttribute('src', '#kaeru-img');
+      
+      let startX, startY;
+      const edge = Math.floor(Math.random() * 4);
+
+      switch(edge) {
+        case 0: startX = (Math.random() - 0.5) * 1.0; startY = 0.7; break;
+        case 1: startX = 0.5; startY = (Math.random() - 0.5) * 1.4; break;
+        case 2: startX = (Math.random() - 0.5) * 1.0; startY = -0.7; break;
+        case 3: startX = -0.5; startY = (Math.random() - 0.5) * 1.4; break;
+      }
+      
+      kaeru.setAttribute('position', `${startX} ${startY} 0.01`);
+      kaeru.setAttribute('width', '0.3');
+      kaeru.setAttribute('height', '0.3');
+
+      kaeru.setAttribute('animation__pos', {
+        property: 'position',
+        to: `${startX} ${startY} 0.8`,
+        dur: 3000,
+        easing: 'linear'
+      });
+      kaeru.setAttribute('animation__fade', {
+        property: 'scale',
+        to: '0 0 0',
+        dur: 3000,
+        easing: 'easeInQuad'
+      });
+
+      container.appendChild(kaeru);
+      setTimeout(() => { if(kaeru.parentNode) kaeru.remove(); }, 3000);
+    };
+
+    setInterval(spawnKaeru, 500);
+
+    targetEl.addEventListener('targetFound', () => { shootBtn.style.display = 'block'; });
+    targetEl.addEventListener('targetLost', () => { shootBtn.style.display = 'none'; });
+
+    shootBtn.addEventListener('click', () => {
+      const video = document.querySelector('video');
+      const sceneCanvas = sceneEl.canvas;
+      if (!video || !sceneCanvas) return;
+
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const screenW = sceneCanvas.clientWidth;
+      const screenH = sceneCanvas.clientHeight;
+      canvas.width = screenW;
+      canvas.height = screenH;
+
+      const videoW = video.videoWidth;
+      const videoH = video.videoHeight;
+      const videoAspect = videoW / videoH;
+      const screenAspect = screenW / screenH;
+
+      let sourceX = 0, sourceY = 0, sourceW = videoW, sourceH = videoH;
+      if (videoAspect > screenAspect) {
+        sourceW = videoH * screenAspect;
+        sourceX = (videoW - sourceW) / 2;
+      } else {
+        sourceH = videoW / screenAspect;
+        sourceY = (videoH - sourceH) / 2;
+      }
+
+      ctx.drawImage(video, sourceX, sourceY, sourceW, sourceH, 0, 0, screenW, screenH);
+      sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+      ctx.drawImage(sceneCanvas, 0, 0, screenW, screenH);
+
+      document.getElementById('preview-image').src = canvas.toDataURL('image/jpeg');
+      document.getElementById('preview-container').style.display = 'flex';
+    });
+
+    document.getElementById('close-btn').onclick = () => {
+      document.getElementById('preview-container').style.display = 'none';
+    };
+  </script>
+</body>
+</html>
