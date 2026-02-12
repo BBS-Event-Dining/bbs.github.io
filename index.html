@@ -1,106 +1,129 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <title>BBS AR - Grid</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BBS AR Menu</title>
   <style>
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
-    .mindar-ui-overlay.mindar-ui-loading { background: rgba(0,0,0,0.8); }
-    #shoot { 
-      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); 
-      z-index: 1000; padding: 15px 35px; font-size: 18px; font-weight: bold; 
-      border-radius: 50px; border: none; background: #4da3ff; color: #fff; 
-      display: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    body {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 20px 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #333;
     }
-    #preview-container { 
-      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-      background: rgba(0,0,0,0.9); z-index: 99999; flex-direction: column; 
-      align-items: center; justify-content: center; 
+
+    h1 {
+      font-size: 1.4rem;
+      margin: 20px 0 30px;
+      color: #2c3e50;
     }
-    #preview-image { width: auto; height: 80%; max-width: 95%; border: 1px solid #fff; object-fit: contain; }
-    #close-btn { margin-top: 15px; padding: 12px 40px; background: #fff; border: none; font-weight: bold; border-radius: 5px; }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      width: 90%;
+      max-width: 450px;
+    }
+
+    .ar-item {
+      display: flex;
+      flex-direction: column;
+      background: #ffffff;
+      text-decoration: none;
+      border-radius: 15px;
+      border: 2px solid #4da3ff;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .ar-item:active {
+      transform: scale(0.97);
+      background: #f0f7ff;
+    }
+
+    .ar-image {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      background: #eee;
+      border-bottom: 1px solid #eee;
+    }
+
+    .ar-info {
+      padding: 15px;
+      text-align: center;
+    }
+
+    .ar-title {
+      display: block;
+      font-weight: bold;
+      font-size: 1.1rem;
+      color: #4da3ff;
+      margin-bottom: 5px;
+    }
+
+    .ar-note {
+      display: block;
+      font-size: 0.85rem;
+      color: #666;
+      line-height: 1.4;
+    }
+
+    .footer-text {
+      margin: 40px 0;
+      font-size: 0.8rem;
+      color: #999;
+    }
   </style>
 </head>
 <body>
-  <button id="shoot">撮影する</button>
-  <div id="preview-container">
-    <img id="preview-image" src="">
-    <button id="close-btn">閉じる</button>
+
+  <h1>ARメニューを選択してください</h1>
+
+  <div class="menu-grid">
+    <a href="https://bbs-event-dining.github.io/bbs.github.io/box_ar/" class="ar-item">
+      <img src="chirashi.jpg" alt="chirashi" class="ar-image">
+      <div class="ar-info">
+        <span class="ar-title">Doll packaging</span>
+        <span class="ar-note">チラシを置いてスキャンしてください</span>
+      </div>
+    </a>
+
+    <a href="https://bbs-event-dining.github.io/bbs.github.io/bbs_only/" class="ar-item">
+      <img src="spot.jpg" alt="spot" class="ar-image">
+      <div class="ar-info">
+        <span class="ar-title">フォトスポット用</span>
+        <span class="ar-note">フォトスポットに向けてください</span>
+      </div>
+    </a>
+
+    <a href="https://bbs-event-dining.github.io/bbs.github.io/heart_waku/" class="ar-item">
+      <img src="heartframe.jpg" alt="heartframe" class="ar-image">
+      <div class="ar-info">
+        <span class="ar-title">heart frame</span>
+        <span class="ar-note">この映像が流れたLED画面に向けてください</span>
+      </div>
+    </a>
+
+    <a href="https://bbs-event-dining.github.io/bbs.github.io/arch/" class="ar-item">
+      <img src="flower.jpg" alt="flower" class="ar-image">
+      <div class="ar-info">
+        <span class="ar-title">花のarch</span>
+        <span class="ar-note">この映像が流れたLED画面に向けてください</span>
+      </div>
+    </a>
   </div>
 
-  <a-scene 
-    mindar-image="imageTargetSrc: grid.mind; autoStart: true; uiLoading: yes; uiScanning: yes; 
-                  filterMinCF: 0.00001; filterBeta: 0.0001; missTolerance: 100; warmupTolerance: 5;" 
-    renderer="preserveDrawingBuffer: true; alpha: true; antialias: true; colorManagement: true; logarithmicDepthBuffer: true; precision: high;" 
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false">
-    
-    <a-assets>
-      <a-asset-item id="grid-obj" src="grid2.glb"></a-asset-item>
-    </a-assets>
+  <div class="footer-text">
+    &copy; B.B.S. Event Dining
+  </div>
 
-    <a-camera position="0 0 0" look-controls="enabled: false" wasd-controls="enabled: false" near="0.01" far="100"></a-camera>
-
-    <a-entity mindar-image-target="targetIndex: 0" id="bbs-target">
-      <a-gltf-model 
-        src="#grid-obj" 
-        position="0 0 0" 
-        rotation="0 0 0" 
-        scale="1 1 1">
-      </a-gltf-model>
-    </a-entity>
-  </a-scene>
-
-  <script>
-    const sceneEl = document.querySelector('a-scene');
-    const shootBtn = document.getElementById('shoot');
-    const targetEl = document.getElementById('bbs-target');
-
-    // ターゲット検知時のボタン制御
-    targetEl.addEventListener('targetFound', () => { shootBtn.style.display = 'block'; });
-    targetEl.addEventListener('targetLost', () => { shootBtn.style.display = 'none'; });
-
-    // 撮影処理
-    shootBtn.addEventListener('click', () => {
-      const video = document.querySelector('video');
-      const sceneCanvas = sceneEl.canvas;
-      if (!video || !sceneCanvas) return;
-
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const screenW = sceneCanvas.clientWidth;
-      const screenH = sceneCanvas.clientHeight;
-      canvas.width = screenW;
-      canvas.height = screenH;
-
-      const videoW = video.videoWidth;
-      const videoH = video.videoHeight;
-      const videoAspect = videoW / videoH;
-      const screenAspect = screenW / screenH;
-
-      let sourceX = 0, sourceY = 0, sourceW = videoW, sourceH = videoH;
-      if (videoAspect > screenAspect) {
-        sourceW = videoH * screenAspect;
-        sourceX = (videoW - sourceW) / 2;
-      } else {
-        sourceH = videoW / screenAspect;
-        sourceY = (videoH - sourceH) / 2;
-      }
-
-      ctx.drawImage(video, sourceX, sourceY, sourceW, sourceH, 0, 0, screenW, screenH);
-      sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
-      ctx.drawImage(sceneCanvas, 0, 0, screenW, screenH);
-
-      document.getElementById('preview-image').src = canvas.toDataURL('image/jpeg');
-      document.getElementById('preview-container').style.display = 'flex';
-    });
-
-    document.getElementById('close-btn').onclick = () => {
-      document.getElementById('preview-container').style.display = 'none';
-    };
-  </script>
 </body>
 </html>
